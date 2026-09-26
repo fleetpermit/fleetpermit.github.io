@@ -9,11 +9,14 @@
 //   - a same-site link points to an #id that the target page does not contain
 //   - a page loads a script from another origin
 //   - a page is missing a non-empty <title> or a <main> element
+//   - a local stylesheet or script reference lacks its current ?v= content hash
+//     (fix with node scripts/stamp-assets.mjs)
 //   - any text file contains placeholder filler text or an absolute home-directory path
 
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, dirname, relative, resolve, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { stamp } from './stamp-assets.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SKIP_DIRS = new Set(['.git', 'node_modules', 'scripts']);
@@ -59,6 +62,7 @@ for (const file of htmlFiles) {
   const title = html.match(/<title>([\s\S]*?)<\/title>/i);
   if (!title || !title[1].trim()) errors.push(`${name}: missing or empty <title>`);
   if (!/<main[\s>]/i.test(html)) errors.push(`${name}: missing <main>`);
+  if (stamp(root, html) !== html) errors.push(`${name}: stylesheet or script hash missing or stale; run node scripts/stamp-assets.mjs`);
 
   for (const m of html.matchAll(/<script\b[^>]*\bsrc\s*=\s*["']?([^"'\s>]+)/gi)) {
     if (/^(https?:)?\/\//i.test(m[1])) errors.push(`${name}: external script ${m[1]}`);
