@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0c1728">
 <link rel="icon" href="assets/img/logo-mark.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/img/avatar-512.png">
-<link rel="stylesheet" href="assets/css/site.css?v=f3666cfc82">
+<link rel="stylesheet" href="assets/css/site.css?v=85ea29d818">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="FleetPermit">
 <meta property="og:title" content="FleetPermit: least privilege for agents, across every cluster">
@@ -18,12 +18,12 @@
 <meta property="og:image" content="https://fleetpermit.github.io/assets/img/social-preview.png">
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){var d=document.documentElement,t='dark';d.className=d.className.replace('no-js','js');try{var s=localStorage.getItem('fp-theme');if(s==='light'||s==='dark')t=s;}catch(e){}d.setAttribute('data-theme',t);})();</script>
-<script src="assets/js/site.js?v=9cbeaed696" defer></script>
-<link rel="stylesheet" href="assets/css/hero.css?v=d5743a22f5">
-<link rel="stylesheet" href="assets/css/agents.css?v=9dca5593b2">
-<script src="assets/js/hero.js?v=165e967be5" defer></script>
-<script src="assets/js/architecture-player.js?v=5f2061f46f" defer></script>
-<script src="assets/js/results.js?v=64e8e18e31" defer></script>
+<script src="assets/js/site.js?v=106244e587" defer></script>
+<link rel="stylesheet" href="assets/css/hero.css?v=8740d60b71">
+<link rel="stylesheet" href="assets/css/agents.css?v=7eebe30126">
+<script src="assets/js/hero.js?v=37bc8dfe8f" defer></script>
+<script src="assets/js/architecture-player.js?v=640024abfd" defer></script>
+<script src="assets/js/results.js?v=ad8beb0c64" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -135,7 +135,7 @@
     <section class="ticker fx-enter" style="--d:600ms" aria-labelledby="ticker-title">
       <div class="ticker-head">
         <h2 class="ticker-title" id="ticker-title"><span class="rec" aria-hidden="true"></span>Replay of recorded lab decisions</h2>
-        <p class="ticker-sub" id="ticker-sub">Real MCP calls through the lab gateways, replayed from <a href="data/results.json">data/results.json</a>. Not a live feed. The time on each row is the probe's round trip for that call.</p>
+        <p class="ticker-sub" id="ticker-sub">Real MCP calls through the lab gateways, replayed from <a href="data/results.json">data/results.json</a>. Not a live feed, and shown in mixed order. The time on each row is how long the call took, measured inside the agent pod.</p>
       </div>
       <div class="ticker-window" id="ticker-window" role="region" aria-labelledby="ticker-title">
         <ol class="ticker-list" id="ticker-list" aria-label="Recorded lab decisions">
@@ -317,7 +317,7 @@
             <g id="tok-call2" class="hide"><rect x="-66" y="-13" width="132" height="26" rx="13" fill="#1B3050" stroke="#F5B544" stroke-width="1.5"/><text y="4.5" text-anchor="middle" class="mono" font-size="12">restart_workload</text></g>
           </svg>
         </div>
-        <p class="player-swipe">The diagram scrolls sideways. While it plays, it follows each step.</p>
+        <p class="player-swipe">The diagram scrolls sideways. It follows the current step, while it plays or when you pick one.</p>
 
         <div class="player-bar">
           <p class="caption" id="player-caption" aria-live="off"><b id="player-count">Step 1 of 10</b><span id="player-text">The agent has a SPIFFE identity.</span></p>
@@ -372,7 +372,7 @@
         </div>
         <div class="why-item">
           <h3>Errors never add authority</h3>
-          <p>With the default-deny anchor installed, a missing Placement, a render error or a deleted policy withdraws grants, and nothing else changes. With the hub unreachable, nothing new is granted and delivered leases still expire on time. <code>failMode</code> accepts only <code>Closed</code>. The anchor matters because upstream enforces nothing on a backend without any XAccessPolicy; on clusters FleetPermit selects, its inert policy also denies.</p>
+          <p>With the default-deny anchor installed, a missing Placement, a render error or a deleted policy withdraws grants and never grants anything new. With the hub unreachable, nothing new is granted and delivered leases still expire on time. <code>failMode</code> accepts only <code>Closed</code>. The anchor matters because upstream enforces nothing on a backend without any XAccessPolicy; on clusters FleetPermit selects, its inert policy also denies.</p>
         </div>
       </div>
     </div>
@@ -536,7 +536,7 @@ incident-42   sre-remediation   2          2026-09-26T10:15:00Z   Active   1m</c
           <tbody>
             <tr><th scope="row">Time bound in the data plane</th><td>Every lease rule carries <code>request.time &lt; timestamp(expiresAt)</code>, evaluated by Envoy on each call. Expiry does not depend on the hub.</td></tr>
             <tr><th scope="row">Default deny with the anchor</th><td>The shipped default-deny anchor, an XAccessPolicy installed next to each tool backend, makes a backend with no grant refuse every call. Upstream enforces nothing on a backend without any XAccessPolicy, so the anchor is part of the installation.</td></tr>
-            <tr><th scope="row">Identity from the platform</th><td>Agents present SPIFFE X.509 certificates issued by Kubernetes Pod Certificates; the gateway authenticates them over mTLS.</td></tr>
+            <tr><th scope="row">Identity from the platform</th><td>Agents present SPIFFE X.509 certificates from an issuer the gateway trusts (Kubernetes Pod Certificates in the lab); the gateway authenticates them over mTLS.</td></tr>
             <tr><th scope="row">Only narrowing, never widening</th><td>A lease activates a subset of the policy's tools, for at most <code>maxDuration</code>, on at most the placement's clusters.</td></tr>
             <tr><th scope="row">Narrow controller RBAC</th><td>On the hub, the controller reads placement and writes ManifestWork. It cannot read Secrets or create pods, RBAC or namespaces. The OCM work agent applies whatever a ManifestWork carries, so the controller's ServiceAccount is still a privileged credential; <code>--work-executor</code> makes the work agent apply FleetPermit's content as a restricted managed-cluster identity.</td></tr>
             <tr><th scope="row">Errors never add authority</th><td>With the default-deny anchor installed, render errors or a missing Placement withdraw grants, and lease grants expire on time. Denied and Expired leases are terminal. <code>failMode</code> accepts only <code>Closed</code>.</td></tr>
@@ -552,9 +552,9 @@ incident-42   sre-remediation   2          2026-09-26T10:15:00Z   Active   1m</c
     <div class="container">
       <div class="section-head">
         <h2 id="results-title">Measured results</h2>
-        <p>Every decision in the end-to-end suite is a real MCP call from a real SPIFFE identity through a real Envoy gateway, on local kind clusters.</p>
+        <p>Every decision in the end-to-end suite is an MCP call from a test pod's SPIFFE identity through a cluster's Envoy gateway, on local kind clusters.</p>
       </div>
-      <div id="results-preview" aria-live="polite">
+      <div id="results-preview" aria-busy="true">
         <p class="state">Loading results from <a href="data/results.json">data/results.json</a>.</p>
       </div>
       <noscript><p class="state">The results summary needs JavaScript. The raw data is at <a href="data/results.json">data/results.json</a>.</p></noscript>
@@ -588,7 +588,7 @@ incident-42   sre-remediation   2          2026-09-26T10:15:00Z   Active   1m</c
     <div class="container">
       <div class="section-head">
         <h2 id="start-title">Get started</h2>
-        <p>The lab creates one hub and three managed kind clusters on your machine, installs everything, and runs the narrated demo.</p>
+        <p><code>make demo-up</code> creates one hub and three managed kind clusters on your machine and installs everything; <code>make demo-run</code> runs the narrated demo.</p>
       </div>
       <div class="two-col">
         <div class="code-block" data-commands-only>
@@ -606,7 +606,7 @@ incident-42   sre-remediation   2          2026-09-26T10:15:00Z   Active   1m</c
 <span class="tok-p">$ </span>helm install fleetpermit charts/fleetpermit -n fleetpermit-system --create-namespace
 <span class="tok-c"># on each managed cluster</span>
 <span class="tok-p">$ </span>kubectl apply -f config/managed-cluster/work-agent-rbac.yaml
-<span class="tok-p">$ </span>kubectl apply -f config/managed-cluster/default-deny-anchor.yaml</code></pre>
+<span class="tok-p">$ </span>kubectl apply -f config/managed-cluster/default-deny-anchor.yaml   <span class="tok-c"># edit namespace/backend name first</span></code></pre>
         </div>
       </div>
       <p><a href="docs.html">Prerequisites and full instructions</a></p>

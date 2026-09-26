@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0c1728">
 <link rel="icon" href="assets/img/logo-mark.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/img/avatar-512.png">
-<link rel="stylesheet" href="assets/css/site.css?v=f3666cfc82">
+<link rel="stylesheet" href="assets/css/site.css?v=85ea29d818">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="FleetPermit">
 <meta property="og:title" content="Demo and policy playground | FleetPermit">
@@ -18,8 +18,8 @@
 <meta property="og:image" content="https://fleetpermit.github.io/assets/img/social-preview.png">
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){var d=document.documentElement,t='dark';d.className=d.className.replace('no-js','js');try{var s=localStorage.getItem('fp-theme');if(s==='light'||s==='dark')t=s;}catch(e){}d.setAttribute('data-theme',t);})();</script>
-<script src="assets/js/site.js?v=9cbeaed696" defer></script>
-<script src="assets/js/playground.js?v=248aa30261" defer></script>
+<script src="assets/js/site.js?v=106244e587" defer></script>
+<script src="assets/js/playground.js?v=eae43297fa" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -106,7 +106,7 @@
           </div>
         </form>
 
-        <div class="pg-result" id="pg-result" aria-live="polite" aria-atomic="true">
+        <div class="pg-result" id="pg-result">
           <div class="pg-compare">
             <div class="pg-side pg-model-side">
               <p class="pg-model-head"><span class="tag-model">Policy model</span>What the policy says</p>
@@ -121,7 +121,7 @@
               <p class="rec-detail" id="pg-rec-detail"></p>
             </section>
           </div>
-          <p id="pg-summary" style="margin:0">sre-agent may call restart_workload on cluster-east while the lease is active.</p>
+          <p id="pg-summary" style="margin:0" aria-live="polite">sre-agent may call restart_workload on cluster-east while the lease is active.</p>
           <ol class="checks" id="pg-checks" aria-label="Checks in order">
             <li class="ok"><span class="q">WHO?</span><span class="detail">sre-agent is a subject of the policy.</span></li>
             <li class="ok"><span class="q">WHAT?</span><span class="detail">restart_workload is granted by the active lease.</span></li>
@@ -133,7 +133,8 @@
         </div>
       </div>
       <figure class="figure" style="margin-top:28px">
-        <img src="assets/img/decision-matrix.svg" width="1200" height="600" loading="lazy" alt="The whole rule as two grids of 2 agents by 3 clusters by 4 tools. With the lease active, only sre-agent calling get_cluster_health or restart_workload on cluster-east or cluster-west is allowed; every other combination is denied. With the lease expired, every combination is denied.">
+        <div class="fig-scroll fig-dense" data-label="Decision matrix diagram, scrolls sideways"><img src="assets/img/decision-matrix.svg" width="1200" height="600" loading="lazy" alt="The whole rule as two grids of 2 agents by 3 clusters by 4 tools. With the lease active, only sre-agent calling get_cluster_health or restart_workload on cluster-east or cluster-west is allowed; every other combination is denied. With the lease expired, every combination is denied."></div>
+        <a class="fig-open" href="assets/img/decision-matrix.svg">Open the decision matrix diagram at full size</a>
         <figcaption>The whole rule at a glance: expected decisions from the policy, not test results. The recorded outcomes are on the <a href="results.html#matrix">results page</a>.</figcaption>
       </figure>
       <noscript><p class="state" style="margin-top:16px">The playground needs JavaScript. The rule: ALLOW only when the agent is sre-agent, the cluster is east or west, the tool is get_cluster_health or restart_workload, and the lease is active.</p></noscript>
@@ -149,15 +150,15 @@
       <div class="video-grid">
         <figure class="video-card">
           <video data-optional controls preload="none" src="assets/video/demo-overview.mp4" poster="assets/video/demo-overview.jpg" aria-describedby="v1-cap"></video>
-          <figcaption id="v1-cap"><strong>Overview</strong><span>A lease activates a tool on the selected clusters, the other cluster denies, and the lease expires.</span></figcaption>
+          <figcaption id="v1-cap"><strong>Overview</strong><span>A lease activates a tool on the selected clusters, the other cluster denies, and the lease expires.</span><a class="cast" href="https://github.com/fleetpermit/fleetpermit/blob/main/demo/recordings/demo-overview.cast">Terminal recording as text (demo-overview.cast)</a></figcaption>
         </figure>
         <figure class="video-card">
           <video data-optional controls preload="none" src="assets/video/demo-security.mp4" poster="assets/video/demo-security.jpg" aria-describedby="v2-cap"></video>
-          <figcaption id="v2-cap"><strong>Security checks</strong><span>Calls and leases that FleetPermit refuses, and why.</span></figcaption>
+          <figcaption id="v2-cap"><strong>Security checks</strong><span>Refused calls and leases, an immutable lease, a rejected policy, and a deleted grant restored from the hub.</span><a class="cast" href="https://github.com/fleetpermit/fleetpermit/blob/main/demo/recordings/demo-security.cast">Terminal recording as text (demo-security.cast)</a></figcaption>
         </figure>
         <figure class="video-card">
           <video data-optional controls preload="none" src="assets/video/demo-disconnected-expiry.mp4" poster="assets/video/demo-disconnected-expiry.jpg" aria-describedby="v3-cap"></video>
-          <figcaption id="v3-cap"><strong>Expiry with the hub unreachable</strong><span>The gateways deny at the expiry time while the hub is unreachable, then clean up on reconnection.</span></figcaption>
+          <figcaption id="v3-cap"><strong>Expiry with the hub unreachable</strong><span>The gateways deny at the expiry time while the hub is unreachable, then clean up on reconnection.</span><a class="cast" href="https://github.com/fleetpermit/fleetpermit/blob/main/demo/recordings/demo-disconnected-expiry.cast">Terminal recording as text (demo-disconnected-expiry.cast)</a></figcaption>
         </figure>
       </div>
     </div>

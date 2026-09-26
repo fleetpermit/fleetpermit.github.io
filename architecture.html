@@ -9,8 +9,8 @@
 <meta name="theme-color" content="#0c1728">
 <link rel="icon" href="assets/img/logo-mark.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/img/avatar-512.png">
-<link rel="stylesheet" href="assets/css/site.css?v=f3666cfc82">
-<link rel="stylesheet" href="assets/css/flows.css?v=1bc2b12438">
+<link rel="stylesheet" href="assets/css/site.css?v=85ea29d818">
+<link rel="stylesheet" href="assets/css/flows.css?v=bcb7154457">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="FleetPermit">
 <meta property="og:title" content="Architecture | FleetPermit">
@@ -19,8 +19,8 @@
 <meta property="og:image" content="https://fleetpermit.github.io/assets/img/social-preview.png">
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){var d=document.documentElement,t='dark';d.className=d.className.replace('no-js','js');try{var s=localStorage.getItem('fp-theme');if(s==='light'||s==='dark')t=s;}catch(e){}d.setAttribute('data-theme',t);})();</script>
-<script src="assets/js/site.js?v=9cbeaed696" defer></script>
-<script src="assets/js/flows.js?v=bed63fe48f" defer></script>
+<script src="assets/js/site.js?v=106244e587" defer></script>
+<script src="assets/js/flows.js?v=f538a6decf" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -56,12 +56,13 @@
     <section id="overview" style="margin-bottom:48px" aria-labelledby="overview-h">
       <h2 id="overview-h">Overview</h2>
       <figure class="figure">
-        <img src="assets/img/architecture.svg" width="1200" height="800" alt="FleetPermit architecture. The hub cluster holds FleetAccessPolicy and ToolAccessLease objects, the Open Cluster Management hub with Placement and PlacementDecision, the fleetpermit-controller, and one ManifestWork per selected cluster. ManifestWork delivers a rendered XAccessPolicy to cluster-east and cluster-west, both env=production. cluster-edge, env=staging, receives nothing and denies every call through its default-deny anchor. Inside cluster-east, the OCM klusterlet applies the XAccessPolicy, the agentic networking controller programs the Envoy gateway, and the agent sre-agent calls the MCP tool server through the gateway over mTLS with a SPIFFE identity from Kubernetes Pod Certificates.">
+        <div class="fig-scroll" data-label="Architecture diagram, scrolls sideways"><img src="assets/img/architecture.svg" width="1200" height="800" alt="FleetPermit architecture. The hub cluster holds FleetAccessPolicy and ToolAccessLease objects, the Open Cluster Management hub with Placement and PlacementDecision, the fleetpermit-controller, and one ManifestWork per selected cluster. ManifestWork delivers a rendered XAccessPolicy to cluster-east and cluster-west, both env=production. cluster-edge, env=staging, receives nothing and denies every call through its default-deny anchor. Inside cluster-east, the OCM klusterlet applies the XAccessPolicy, the agentic networking controller programs the Envoy gateway, and the agent sre-agent calls the MCP tool server through the gateway over mTLS with a SPIFFE identity from Kubernetes Pod Certificates."></div>
+        <a class="fig-open" href="assets/img/architecture.svg">Open the architecture diagram at full size</a>
         <figcaption>The lab topology: one hub and three managed clusters. The Placement selects clusters labelled <code>env=production</code>.</figcaption>
       </figure>
     </section>
 
-    <div class="doc-layout">
+    <div class="doc-layout wide-figs">
       <nav class="doc-toc" aria-label="On this page">
         <h2>On this page</h2>
         <ul>
@@ -105,7 +106,7 @@
                 <tr><th scope="row">Envoy gateway</th><td>A Gateway API <code>Gateway</code> with the tool server behind it as an <code>XBackend</code>. Terminates mTLS, authenticates the SPIFFE ID, parses the MCP request and evaluates the rules, including the CEL time bound.</td></tr>
                 <tr><th scope="row">MCP tool server</th><td>The protected backend. The demo server offers <code>get_cluster_health</code>, <code>restart_workload</code>, <code>scale_workload</code> and <code>read_secret</code>.</td></tr>
                 <tr><th scope="row">Default-deny anchor</th><td>An XAccessPolicy whose only rule can never match. Upstream enforces nothing on a target that has no XAccessPolicy, so the anchor closes the backend by default.</td></tr>
-                <tr><th scope="row">Agent workloads</th><td>Pods whose SPIFFE X.509 identities, such as <code>spiffe://cluster.local/ns/agents/sa/sre-agent</code>, are issued by Kubernetes Pod Certificates.</td></tr>
+                <tr><th scope="row">Agent workloads</th><td>Pods that present SPIFFE X.509 certificates, such as <code>spiffe://cluster.local/ns/agents/sa/sre-agent</code>, from an issuer the gateway trusts (Kubernetes Pod Certificates in the lab).</td></tr>
               </tbody>
             </table>
           </div>
@@ -113,8 +114,9 @@
 
         <section id="flow" aria-labelledby="flow-h">
           <h2 id="flow-h">How it works</h2>
-          <figure class="figure">
-            <img src="assets/img/policy-flow.svg" width="1200" height="590" alt="From request to enforcement. ToolAccessLease incident-42 asks for restart_workload for 10 minutes. The controller checks, in this order, WHO: the subject is listed in the policy. WHAT: requested tools are a subset of the policy permissions. HOW LONG: the duration is at most maxDuration. WHERE: clusters come from the OCM PlacementDecision and a lease may only narrow them. When all four pass, it renders one XAccessPolicy per policy and cluster, delivers it with one ManifestWork per selected cluster, and the Envoy gateway enforces identity, tool name and time on every tools/call. A failed WHO, WHAT or HOW LONG check marks the lease Denied, which is terminal.">
+          <figure class="figure wide">
+            <div class="fig-scroll" data-label="Request to enforcement diagram, scrolls sideways"><img src="assets/img/policy-flow.svg" width="1200" height="590" alt="From request to enforcement. ToolAccessLease incident-42 asks for restart_workload for 10 minutes. The controller checks, in this order, WHO: the subject is listed in the policy. WHAT: requested tools are a subset of the policy permissions. HOW LONG: the duration is at most maxDuration. WHERE: clusters come from the OCM PlacementDecision and a lease may only narrow them. When all four pass, it renders one XAccessPolicy per policy and cluster, delivers it with one ManifestWork per selected cluster, and the Envoy gateway enforces identity, tool name and time on every tools/call. A failed WHO, WHAT or HOW LONG check marks the lease Denied, which is terminal."></div>
+            <a class="fig-open" href="assets/img/policy-flow.svg">Open the request to enforcement diagram at full size</a>
           </figure>
           <ol class="steps">
             <li><div><h3>Define the ceiling</h3><p>The platform team creates a FleetAccessPolicy and an OCM Placement. The policy lists SPIFFE subjects, the Placement, the target (namespace plus XBackend or Gateway), the permitted MCP tools and the lease limits. <code>failMode</code> is <code>Closed</code>.</p></div></li>
@@ -131,7 +133,7 @@
           <h2 id="flows-h">Every flow, animated</h2>
           <div class="prose">
             <p>The end-to-end suite makes real MCP calls through the Envoy gateways of a local lab. The lab has one hub and three managed clusters. The Placement selects cluster-east and cluster-west (<code>env=production</code>). cluster-edge is not selected. The caller is <code>sre-agent</code>, which the policy lists, or <code>security-agent</code>, which it does not.</p>
-            <p>Each tab covers one flow and can combine scenarios that run at different points in the test script. Under each scene are the scenario results from the latest end-to-end run and the lab timings for that flow. Each timing is a median across the benchmark runs and the end-to-end run, and names its source. Both come from the same file as the <a href="results.html">results page</a>.</p>
+            <p>Each tab covers one flow and can combine scenarios that run at different points in the test script. Under each scene are the scenario results from the latest end-to-end run and the lab timings for that flow. Each timing is the median of the samples recorded for it, from the benchmark, the end-to-end run or both, and names its source. Both come from the same file as the <a href="results.html">results page</a>.</p>
             <p>The lab tests use their own policy, set by <code>apply_policy</code> in <a href="https://github.com/fleetpermit/fleetpermit/blob/main/test/e2e/lib.sh">test/e2e/lib.sh</a>, with <code>maxDuration: 10m</code> and <code>defaultDuration: 2m</code>. The example policy elsewhere on this site is the repository sample, with <code>maxDuration: 30m</code> and <code>defaultDuration: 15m</code>.</p>
           </div>
           <ul class="fl-legend" aria-label="How to read the scenes">
@@ -272,7 +274,7 @@
                     <li data-id="S7"><a class="fl-id" href="results.html#S7">S7</a></li>
                   </ul>
                 </div>
-                <div class="fl-box fl-metrics" data-keys="placementChangeMs" hidden></div>
+                <div class="fl-box fl-smetrics" data-scenario="S7" data-items="labelChangeToAllowMs=edge allowed after;labelChangeToDenyMs=west denied after" hidden></div>
               </div>
             </div>
 
@@ -340,8 +342,9 @@
 
         <section id="lifecycle" aria-labelledby="lifecycle-h">
           <h2 id="lifecycle-h">Lease lifecycle</h2>
-          <figure class="figure">
-            <img src="assets/img/lease-lifecycle.svg" width="1200" height="560" alt="ToolAccessLease lifecycle. A new lease is checked against its policy. If WHO, WHAT or HOW LONG fails it becomes Denied, which is terminal, with reasons SubjectNotAllowed, PermissionNotAllowed, DurationExceedsMaximum or PolicyNotFound. Otherwise it is Pending until a requested cluster is placed and has room under the upstream rule limit, and becomes Active once a grant is rendered on a selected cluster, and Envoy allows the leased tools while request.time is before the expiry timestamp. When request.time reaches expiresAt it becomes Expired, also terminal, and the controller withdraws the grant. Deleting an Active lease revokes it on every cluster. expiresAt equals creationTimestamp plus the effective duration; for a lease without spec.duration the default in effect at first evaluation is pinned, and policy changes never extend it.">
+          <figure class="figure wide">
+            <div class="fig-scroll" data-label="Lease lifecycle diagram, scrolls sideways"><img src="assets/img/lease-lifecycle.svg" width="1200" height="560" alt="ToolAccessLease lifecycle. A new lease is checked against its policy. If WHO, WHAT or HOW LONG fails, or its policy does not exist, it becomes Denied, which is terminal, with reasons SubjectNotAllowed, PermissionNotAllowed, DurationExceedsMaximum or PolicyNotFound. Otherwise it is Pending until a requested cluster is placed and has room under the upstream rule limit, and becomes Active once a grant is rendered on a selected cluster, and Envoy allows the leased tools while request.time is before the expiry timestamp. When request.time reaches expiresAt it becomes Expired, also terminal, and the controller withdraws the grant. Deleting an Active lease revokes it on every cluster. expiresAt equals creationTimestamp plus the effective duration; for a lease without spec.duration the default in effect at first evaluation is pinned, and policy changes never extend it."></div>
+            <a class="fig-open" href="assets/img/lease-lifecycle.svg">Open the lease lifecycle diagram at full size</a>
           </figure>
           <p class="prose"><code>expiresAt</code> is the API server's creation time plus the effective duration. For a lease without <code>spec.duration</code>, that is the policy default in effect at the first evaluation, pinned in status; policy changes never extend it. Only the controller should be allowed to write lease status. To change a lease, delete it and create a new one, so every grant is traceable to exactly one request.</p>
         </section>
@@ -358,8 +361,9 @@
           <div class="prose">
             <p>Envoy compiles it into an RBAC condition and stops honouring the grant at the expiry instant, using the managed cluster's clock. Nothing on the hub needs to be reachable. The controller removes expired grants afterwards as cleanup; enforcement has already happened in the gateway.</p>
           </div>
-          <figure class="figure">
-            <img src="assets/img/disconnect-behavior.svg" width="1200" height="560" alt="Expiry with the hub unreachable, in three stages. First, the hub is connected, lease incident-42 is Active, the grant is present on cluster-east and restart_workload is allowed. Second, the hub is unreachable at expiry; the grant is still present, but request.time is past 10:15:00Z so the rule is false and the call is denied. Third, the hub reconnects, marks the lease Expired and withdraws the grant; the grant is removed, FleetPermit's policy with no active grants and the default-deny anchor remain on cluster-east, and the call stays denied.">
+          <figure class="figure wide">
+            <div class="fig-scroll" data-label="Expiry with the hub unreachable diagram, scrolls sideways"><img src="assets/img/disconnect-behavior.svg" width="1200" height="560" alt="Expiry with the hub unreachable, in three stages. First, the hub is connected, lease incident-42 is Active, the grant is present on cluster-east and restart_workload is allowed. Second, the hub is unreachable at expiry; the grant is still present, but request.time is past 10:15:00Z so the rule is false and the call is denied. Third, the hub reconnects, marks the lease Expired and withdraws the grant; the grant is removed, FleetPermit's policy with no active grants and the default-deny anchor remain on cluster-east, and the call stays denied."></div>
+            <a class="fig-open" href="assets/img/disconnect-behavior.svg">Open the expiry with the hub unreachable diagram at full size</a>
             <figcaption>Scenario <a href="results.html#S11">S11</a> pauses the whole hub node before a lease expires; <a href="results.html#S12">S12</a> checks the clean-up after reconnection.</figcaption>
           </figure>
         </section>
@@ -390,12 +394,12 @@
     - {group: agentic.networking.x-k8s.io, kind: XBackend, name: fleet-tools}
   <span class="tok-k">action</span>: Allow
   <span class="tok-k">rules</span>:
-    - <span class="tok-k">name</span>: session-c8735226c1<span class="tok-c">   # MCP base protocol methods for this subject</span>
+    - <span class="tok-k">name</span>: session-c8735226c1<span class="tok-c">   # session- + first 10 hex of SHA-256(subject): MCP base protocol methods</span>
       <span class="tok-k">source</span>: {type: SPIFFE, spiffe: spiffe://cluster.local/ns/agents/sa/sre-agent}
       <span class="tok-k">authorization</span>:
         <span class="tok-k">type</span>: Inline
         <span class="tok-k">mcp</span>: {mcpBaseProtocolMethodsOption: MATCH_BASE_PROTOCOL_METHODS}
-    - <span class="tok-k">name</span>: lease-7c41d2e9aa<span class="tok-c">     # the lease: tools/call, bounded in time</span>
+    - <span class="tok-k">name</span>: lease-5b0e93c1d2<span class="tok-c">     # lease- + first 10 hex of SHA-256(lease UID): tools/call, bounded in time</span>
       <span class="tok-k">source</span>: {type: SPIFFE, spiffe: spiffe://cluster.local/ns/agents/sa/sre-agent}
       <span class="tok-k">authorization</span>:
         <span class="tok-k">type</span>: CEL

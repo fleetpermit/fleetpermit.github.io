@@ -16,6 +16,7 @@
   var reduced = !!(reduceMQ && reduceMQ.matches);
   var visible = true;
   var userPaused = false;
+  var tickerHeld = false; /* the replay holds still while it is hovered or has focus */
   var timer = 0;
   var rows = 0;
 
@@ -35,7 +36,7 @@
       if (userPaused) { iPause.setAttribute('hidden', ''); iPlay.removeAttribute('hidden'); }
       else { iPlay.setAttribute('hidden', ''); iPause.removeAttribute('hidden'); }
     }
-    if (run && rows > 4) startTicker(); else stopTicker();
+    if (run && rows > 4 && !tickerHeld) startTicker(); else stopTicker();
     if (run) startCountdown(); else stopCountdown();
   }
 
@@ -171,8 +172,8 @@
     li.appendChild(el('span', 'pill pill-' + kind, r.decision));
     var ms = el('span', 't-ms');
     if (typeof r.ms === 'number' && isFinite(r.ms)) {
-      ms.title = 'Probe round trip for this call';
-      ms.appendChild(el('span', 'visually-hidden', 'probe round trip '));
+      ms.title = 'How long the call took, measured inside the agent pod';
+      ms.appendChild(el('span', 'visually-hidden', 'call took '));
       ms.appendChild(document.createTextNode(r.ms + ' ms'));
     }
     li.appendChild(ms);
@@ -250,9 +251,19 @@
     list.appendChild(li);
   }
 
+  /* Hovering or focusing the replay holds it still, so a row can be read. */
+  if (win) {
+    var hold = function (on) { tickerHeld = on; sync(); };
+    win.addEventListener('pointerenter', function () { hold(true); });
+    win.addEventListener('pointerleave', function () { hold(false); });
+    win.addEventListener('focusin', function () { hold(true); });
+    win.addEventListener('focusout', function (e) { if (!win.contains(e.relatedTarget)) hold(false); });
+  }
+
   if (list && window.fetch) {
-    fetch('data/results.json', { cache: 'no-cache' })
-      .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+    var request = window.FleetPermitData ? window.FleetPermitData.load() : fetch('data/results.json', { cache: 'no-cache' })
+      .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); });
+    request
       .then(function (data) {
         renderPill(data);
         renderNumbers(data);
@@ -268,7 +279,7 @@
           var a = el('a', null, 'data/results.json');
           a.href = 'data/results.json';
           sub.appendChild(a);
-          sub.appendChild(document.createTextNode('. Not a live feed. The time on each row is the probe\u2019s round trip for that call.'));
+          sub.appendChild(document.createTextNode('. Not a live feed, and shown in mixed order. The time on each row is how long the call took, measured inside the agent pod.'));
         }
         if (win) win.setAttribute('tabindex', '0');
         sync();

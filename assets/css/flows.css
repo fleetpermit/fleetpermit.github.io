@@ -174,7 +174,7 @@ button.fl-step:hover { background: var(--bg-2); color: var(--text); }
 .fl-svg .pulse { fill: none; stroke-width: 2; }
 .fl-svg .pulse.allow { stroke: #2dd4bf; }
 .fl-svg .pulse.deny { stroke: #ff7a7a; }
-.fl-svg .last { font-size: 10px; paint-order: stroke; stroke: #0c1728; stroke-width: 4px; stroke-linejoin: round; }
+.fl-svg .last { font-size: 11px; paint-order: stroke; stroke: #0c1728; stroke-width: 4px; stroke-linejoin: round; }
 .fl-svg .last.allow { fill: #2dd4bf; }
 .fl-svg .last.deny { fill: #ff9a9a; }
 
@@ -189,7 +189,7 @@ button.fl-step:hover { background: var(--bg-2); color: var(--text); }
 .fl-svg .tk-perf { stroke: #0c1728; stroke-width: 1.6; stroke-dasharray: 1.6 1.4; }
 .fl-svg .call rect { fill: #1b3050; stroke: #f5b544; stroke-width: 1.5; }
 .fl-svg .call.sec rect { stroke: #cbd5e1; }
-.fl-svg .call text { font-size: 10px; }
+.fl-svg .call text { font-size: 11px; }
 
 .fl-svg .spin-bg { fill: none; stroke: #2e4468; stroke-width: 2; }
 .fl-svg .spin { fill: none; stroke: #f5b544; stroke-width: 2; stroke-linecap: round; transform-box: fill-box; transform-origin: center; animation: fl-spin 900ms linear infinite; }

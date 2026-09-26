@@ -34,8 +34,8 @@
   font-size: 0.86rem; color: #c9d5e4; font-variant-numeric: tabular-nums;
 }
 .fx-dot { position: relative; width: 8px; height: 8px; border-radius: 50%; background: #2dd4bf; flex: none; }
-.fx-dot::after { content: ""; position: absolute; inset: -5px; border-radius: 50%; border: 2px solid #2dd4bf; opacity: 0; animation: fx-ping 2.4s ease-out infinite; }
-@keyframes fx-ping { 0% { transform: scale(0.4); opacity: 0.8; } 80%, 100% { transform: scale(1.6); opacity: 0; } }
+/* The status dot is static: the pill states a recorded result, not a live one. */
+.fx-dot { box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.2); }
 .fx-headline {
   margin: 0; max-width: 17ch; font-size: clamp(2.35rem, 1.2rem + 5.2vw, 5rem); font-weight: 820; letter-spacing: -0.035em; line-height: 1.02;
   text-wrap: balance;
@@ -83,19 +83,19 @@
   position: absolute; display: flex; flex-direction: column; justify-content: center; gap: 1px;
   padding: 0 2.5000cqw; border-radius: 2.5000cqw; border: 1px solid #2a4063; background: #0f1e33; line-height: 1.2; overflow: hidden;
 }
-.chip .who { font-weight: 750; font-size: clamp(9.5px, 3.05cqw, 14px); font-family: var(--mono); white-space: nowrap; }
-.chip .what { font-family: var(--mono); font-size: clamp(9px, 2.85cqw, 13px); color: #a9b8cd; white-space: nowrap; }
+.chip .who { font-weight: 750; font-size: clamp(10px, 3.05cqw, 14px); font-family: var(--mono); white-space: nowrap; }
+.chip .what { font-family: var(--mono); font-size: clamp(10px, 2.85cqw, 13px); color: #a9b8cd; white-space: nowrap; }
 .chip.sre .who { color: #f5b544; }
 .chip.sec .who { color: #cbd5e1; }
 .chip.cl { border-color: rgba(45, 212, 191, 0.5); }
 .chip.cl.edge { border-style: dashed; border-color: #5b6f8c; background: #0b1729; }
 .chip.cl .who { color: #e6edf6; }
-.chip .cstate { position: relative; height: clamp(14px, 4.4cqw, 20px); margin-top: 2px; }
-.chip .cstate span { position: absolute; left: 0; top: 0; display: inline-grid; place-items: center; height: 100%; padding: 0 0.6em; border-radius: 999px; font: 800 clamp(8px, 2.5cqw, 11.5px)/1 var(--font); letter-spacing: 0.04em; }
+.chip .cstate { position: relative; height: clamp(16px, 4.4cqw, 20px); margin-top: 2px; }
+.chip .cstate span { position: absolute; left: 0; top: 0; display: inline-grid; place-items: center; height: 100%; padding: 0 0.6em; border-radius: 999px; font: 800 clamp(10px, 2.5cqw, 11.5px)/1 var(--font); letter-spacing: 0.04em; }
 .chip .cstate .al { background: #0f3b3a; color: #2dd4bf; }
 .chip .cstate .dn { background: #4a1d27; color: #ff9a9a; opacity: 0; }
 .chip.edge .cstate .dn { opacity: 1; }
-.flow-label { position: absolute; display: grid; place-items: center; font: 700 clamp(8.5px, 2.7cqw, 12.5px)/1 var(--mono); white-space: nowrap; }
+.flow-label { position: absolute; display: grid; place-items: center; font: 700 clamp(10px, 2.7cqw, 12.5px)/1 var(--mono); white-space: nowrap; }
 .flow-caps { display: grid; margin: 10px 0 0; min-height: 2.8em; font-size: clamp(0.84rem, 0.8rem + 0.2vw, 0.95rem); color: #c9d5e4; }
 .flow-caps > span { grid-area: 1 / 1; opacity: 0; animation-duration: var(--fx-dur); animation-iteration-count: infinite; animation-timing-function: linear; }
 .flow-caps > span b { font-weight: 750; }
@@ -177,7 +177,7 @@
 .burst.outX { left:59.7222cqw;top:41.9444cqw;width:6.1111cqw;height:6.1111cqw; }
 .burst.outX.d0 { animation-delay: -0.3s; }
 .burst.outX.d1 { animation-delay: -1.5s; }
-.ftick-ok { display: grid; place-items: center; border-radius: 50%; background: #2dd4bf; color: #06201d; font: 900 clamp(7px, 2.4cqw, 11px)/1 var(--font); opacity: 0; animation: fl-tick 1.2s ease-out infinite; }
+.ftick-ok { display: grid; place-items: center; border-radius: 50%; background: #2dd4bf; color: #06201d; font: 900 clamp(10px, 2.4cqw, 11px)/1 var(--font); opacity: 0; animation: fl-tick 1.2s ease-out infinite; }
 .ftick-ok.e { left:67.3611cqw;top:6.2500cqw;width:4.1667cqw;height:4.1667cqw; }
 .ftick-ok.w { left:67.3611cqw;top:27.3611cqw;width:4.1667cqw;height:4.1667cqw; animation-delay: -0.6s; }
 @keyframes fl-tick { 0% { transform: scale(1.2); opacity: 1; } 35% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(0.9); opacity: 0; } }
@@ -251,7 +251,7 @@
 .pill-error { color: var(--lease); background: var(--lease-bg); }
 .hero-fx.fx-static .ticker-window, .hero-fx.fx-user-paused .ticker-window { overflow-y: auto; }
 .hero-fx.fx-static .ticker-window::after, .hero-fx.fx-user-paused .ticker-window::after { display: none; }
-@media (max-width: 760px) {
+@media (max-width: 960px) {
   .ticker-window { --row: 62px; }
   .ticker-list li { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-rows: auto auto; row-gap: 2px; align-content: center; }
   .ticker-list li .t-route { grid-column: 1 / -1; }
@@ -262,3 +262,12 @@
 /* Status pill: full line on wide screens, short line on phones. */
 .fx-pill .pill-short { display: none; }
 @media (max-width: 560px) { .fx-pill .pill-long { display: none; } .fx-pill .pill-short { display: inline; } }
+
+/* Phones: keep the request chips' tool names at 10 px or more without clipping. */
+@media (max-width: 420px) {
+  .chip { padding: 0 1.4cqw; }
+  .chip .what { letter-spacing: -0.03em; }
+}
+@media (max-width: 380px) {
+  .chip .what { display: none; }
+}

@@ -168,7 +168,7 @@
           var r = mm.get(agent, cluster, tool, lease);
           if (!r) { cells.push(h('td', { class: 'o-missing' }, [h('span', { class: 'm-exp', text: 'not recorded' })])); return; }
           var ok = mm.matches(r);
-          var title = (r.detail ? r.detail + ' ' : '') + (isNum(r.latencyMs) ? '(' + r.latencyMs + ' ms)' : '');
+          var title = (r.detail ? r.detail + ' ' : '') + (isNum(r.latencyMs) ? '(the call took ' + r.latencyMs + ' ms, measured inside the agent pod)' : '');
           cells.push(h('td', { class: 'o-' + obsKind(r.observed) + (ok ? '' : ' mismatch'), title: title.trim() || null }, [
             h('span', { class: 'm-obs' }, [
               h('span', { text: r.observed || 'n/a' }),
@@ -521,9 +521,10 @@
   }
 
   /* Accessible inline bar chart of samples, with p50 and p95 guides. */
-  function latencyChart(m, label) {
+  function latencyChart(m, label, cardWidth) {
     var samples = (m.samples || []).filter(isNum);
-    var W = 480, H = 150, padL = 44, padB = 22, padT = 10, padR = 10;
+    /* The viewBox follows the card width (320 to 480), so the axis labels stay near 12 px. */
+    var W = Math.max(320, Math.min(480, Math.round(cardWidth || 480))), H = W < 400 ? 170 : 150, padL = 44, padB = 22, padT = 10, padR = 10;
     var max = Math.max.apply(null, samples.concat([m.max || 0, m.p95 || 0, 1]));
     var top = niceCeil(max);
     var iw = W - padL - padR, ih = H - padT - padB;
@@ -547,7 +548,7 @@
       g.push(svgEl('line', { x1: padL, x2: W - padR, y1: q[1], y2: q[1], stroke: q[2], 'stroke-width': 1.5, 'stroke-dasharray': '5 4' }));
       g.push(svgEl('text', { x: q[3], y: Math.max(11, q[1] - 4), 'text-anchor': 'end', style: 'fill:' + q[2] + ';font-weight:700' }, [q[0]]));
     });
-    g.push(svgEl('text', { x: padL, y: H - 4 }, ['samples in run order (' + (m.unit || '') + ')']));
+    g.push(svgEl('text', { x: padL, y: H - 4 }, ['samples, sorted by value (' + (m.unit || '') + ')']));
     var desc = label + ': ' + samples.length + ' samples from ' + fmt(m.min, m.unit) + ' to ' + fmt(m.max, m.unit) + '; median ' + fmt(m.p50, m.unit) + ', p95 ' + fmt(m.p95, m.unit) + '.';
     return svgEl('svg', { class: 'chart', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': desc }, g);
   }
@@ -559,9 +560,37 @@
     return 10 * p;
   }
 
+  /* Inner width of a latency card: one column up to 800 px, two above (see site.css). */
+  function cardWidth() {
+    if (!root) return 480;
+    var w = root.clientWidth;
+    var twoCols = !(window.matchMedia && window.matchMedia('(max-width: 800px)').matches);
+    return twoCols ? (w - 16) / 2 - 36 : w - 36;
+  }
+  var chartState = { width: null, latency: null };
+  function redrawCharts() {
+    if (!chartState.latency) return;
+    var width = cardWidth();
+    if (Math.abs(width - chartState.width) < 24) return;
+    chartState.width = width;
+    Object.keys(chartState.latency).forEach(function (k) {
+      var card = document.getElementById('lat-' + k);
+      var old = card && card.querySelector('svg.chart');
+      var m = chartState.latency[k] || {};
+      if (old) old.parentNode.replaceChild(latencyChart(m, m.label || k, width), old);
+    });
+  }
+  var chartTimer = 0;
+  window.addEventListener('resize', function () {
+    window.clearTimeout(chartTimer);
+    chartTimer = window.setTimeout(redrawCharts, 150);
+  });
+
   function latencyBlock(latency) {
     var keys = Object.keys(latency || {});
     if (!keys.length) return h('p', { class: 'state', text: 'This results file has no latency measurements.' });
+    chartState.latency = latency;
+    chartState.width = cardWidth();
     return h('div', { class: 'latency-grid' }, keys.map(function (k) {
       var m = latency[k] || {};
       var label = m.label || k;
@@ -575,7 +604,7 @@
           h('span', null, ['max ', h('b', { text: fmt(m.max, m.unit) })]),
           h('span', null, ['samples ', h('b', { text: String(samples.length) })])
         ]),
-        latencyChart(m, label),
+        latencyChart(m, label, chartState.width),
         h('details', { class: 'evidence' }, [
           h('summary', null, ['All samples', h('span', { class: 'visually-hidden', text: ' for ' + label })]),
           h('pre', { tabindex: '0' }, [samples.map(function (v) { return fmt(v, m.unit); }).join('\n')])
@@ -634,7 +663,10 @@
       return h('div', { class: 'stat ' + x[0] }, [h('span', { class: 'v', text: v === undefined || v === null ? 'n/a' : String(v) }), h('span', { class: 'k', text: x[2] })]);
     }));
     var extra = isNum(it.failed) ? h('p', { class: 'small muted', text: 'Integration tests failed: ' + it.failed + '.' }) : null;
-    return h('div', null, [row, extra]);
+    var skipped = isNum(it.skipped) && it.skipped > 0
+      ? h('p', { class: 'small muted', text: 'Integration tests skipped: ' + it.skipped + '. The scale simulation is skipped unless make benchmark runs it.' })
+      : null;
+    return h('div', null, [row, extra, skipped]);
   }
 
   function coverageBlock(cov) {
@@ -650,7 +682,7 @@
         h('strong', { text: s.suite + ' ' + s.version }),
         h('p', null, ['Target: ' + s.target + '. Result: ', h('strong', { text: s.result }), '. Run ' + fmtDate(s.date) + '.']),
         s.note ? h('p', { class: 'small muted', text: s.note }) : null,
-        s.command ? h('pre', null, [h('code', { text: s.command })]) : null
+        s.command ? h('pre', { tabindex: '0' }, [h('code', { text: s.command })]) : null
       ]);
     }));
   }
@@ -671,7 +703,7 @@
 
     var scen = Array.isArray(e2e.scenarios) ? e2e.scenarios : [];
     root.appendChild(section('e2e', 'Real multi-cluster end-to-end scenarios',
-      'Every decision is a real MCP call from a real SPIFFE identity through a real Envoy gateway on a managed cluster.', [
+      'Every decision is an MCP call from a test pod\u2019s SPIFFE identity through a cluster\u2019s Envoy gateway.', [
         h('h3', { text: 'Verified environment' }),
         envBlock(e2e),
         e2e.environment && e2e.environment.description ? h('p', { class: 'small muted', text: 'Environment: ' + e2e.environment.description + '.' }) : null,
@@ -690,28 +722,29 @@
       method ? 'Method: ' + method + '.' : 'Measured by polling the gateways with real MCP calls, every affected cluster concurrently from the same start time, so each value includes the polling granularity.', [latencyBlock(data.latency)]));
 
     root.appendChild(section('scale', 'Simulated controller scale (envtest, no real clusters)',
-      (data.scale && data.scale.environment && data.scale.environment.description ? data.scale.environment.description + '. ' : '') +
-      'These rows measure the controller against a simulated work agent, without real managed clusters.', [scaleBlock(data.scale)]));
+      data.scale && data.scale.environment && data.scale.environment.description ? data.scale.environment.description + '.' : '', [scaleBlock(data.scale)]));
 
     root.appendChild(section('conformance', 'Upstream conformance',
       'The kube-agentic-networking conformance suite, run unmodified from the upstream repository against a lab cluster.', [conformanceBlock(data.conformance)]));
 
     root.appendChild(section('tests', 'Unit and integration tests', 'Integration tests run against a real kube-apiserver and etcd (envtest).', [testsBlock(data.tests), coverageBlock(data.coverage)]));
-
-    focusHash();
   }
 
+  /* Content arrives after the fetch, so the browser's own jump to #id happens too early.
+   * Rows and short targets are centred; larger sections start at the top, below the
+   * sticky header (html has scroll-padding-top). */
   function focusHash() {
     var id = decodeURIComponent((window.location.hash || '').slice(1));
     if (!id) return;
-    Array.prototype.forEach.call(document.querySelectorAll('.is-target'), function (n) { n.classList.remove('is-target'); });
     var target = document.getElementById(id);
-    if (!target) return;
+    if (!target || !(root && root.contains(target)) && !(preview && preview.contains(target))) return;
+    Array.prototype.forEach.call(document.querySelectorAll('.is-target'), function (n) { n.classList.remove('is-target'); });
     target.classList.add('is-target');
-    target.scrollIntoView({ block: 'center' });
+    var small = target.tagName === 'TR' || target.getBoundingClientRect().height < window.innerHeight * 0.6;
+    target.scrollIntoView({ block: small ? 'center' : 'start' });
     if (target.tagName === 'TR') target.focus({ preventScroll: true });
   }
-  window.addEventListener('hashchange', function () { if (root) focusHash(); });
+  window.addEventListener('hashchange', focusHash);
 
   function renderError(where, err) {
     where.textContent = '';
@@ -723,25 +756,43 @@
     ]));
   }
 
+  function announce(msg) {
+    var live = document.getElementById('live-status');
+    if (!live) return;
+    live.textContent = '';
+    window.setTimeout(function () { live.textContent = msg; }, 30);
+  }
+  function done() {
+    [preview, root].forEach(function (w) { if (w) w.removeAttribute('aria-busy'); });
+    /* site.js makes overflowing tables, code and figures keyboard-scrollable. */
+    document.dispatchEvent(new CustomEvent('fp:rendered'));
+  }
+
   function load() {
     if (!window.fetch) {
       [preview, root].forEach(function (w) { if (w) renderError(w, 'this browser cannot fetch data'); });
+      done();
       return;
     }
-    fetch(DATA_URL, { cache: 'no-cache' })
-      .then(function (res) {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.json();
-      })
+    /* One request per page: site.js shares it with the hero and the other scripts. */
+    var request = window.FleetPermitData ? window.FleetPermitData.load() : fetch(DATA_URL, { cache: 'no-cache' }).then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    });
+    request
       .then(function (data) {
         if (!data || typeof data !== 'object') throw new Error('unexpected format');
         if (preview) renderPreview(data);
         if (root) renderDashboard(data);
         if (answerStats) renderAnswers(data);
+        done();
+        if (preview || root) announce('Results loaded');
+        focusHash();
       })
       .catch(function (err) {
         var msg = err && err.message ? err.message : 'unknown error';
         [preview, root].forEach(function (w) { if (w) renderError(w, msg); });
+        done();
       });
   }
 

@@ -29,17 +29,17 @@
 .ag-stage { position: relative; container-type: inline-size; aspect-ratio: 300 / 112; width: 100%; margin: 4px 0 6px; border-radius: 12px; background: #0b1729; border: 1px solid #1c2c45; overflow: hidden; }
 .ag-stage > * { position: absolute; }
 .ag-o { will-change: transform, opacity; pointer-events: none; }
-.ag-lbl { font: 600 clamp(7px, 3.1cqw, 11px)/1 var(--font); color: #7f93b0; white-space: nowrap; }
-.ag-pod { display: grid; place-items: center; align-content: center; gap: 2px; border-radius: 10px; border: 1px solid #2a4063; background: #0f1e33; font: 700 clamp(7px, 3.3cqw, 12px)/1.1 var(--mono); color: #e6edf6; text-align: center; }
+.ag-lbl { font: 600 clamp(10px, 3.1cqw, 12px)/1 var(--font); color: #7f93b0; white-space: nowrap; }
+.ag-pod { display: grid; place-items: center; align-content: center; gap: 2px; border-radius: 10px; border: 1px solid #2a4063; background: #0f1e33; font: 700 clamp(10px, 3.3cqw, 12px)/1.1 var(--mono); color: #e6edf6; text-align: center; }
 .agent-card2.subject .ag-pod { border-color: rgba(245, 181, 68, 0.6); color: #f5b544; }
-.ag-pod small { font: 500 clamp(6px, 2.6cqw, 9.5px)/1 var(--font); color: #a9b8cd; }
+.ag-pod small { font: 500 clamp(10px, 2.6cqw, 11px)/1 var(--font); color: #a9b8cd; }
 .ag-lane { height: 1px; background: repeating-linear-gradient(90deg, #3a5378 0 3px, transparent 3px 7px); }
 .ag-gate { border-radius: 4px; border: 1.5px solid #2dd4bf; background: #0f2036; }
 .ag-gate::after { content: ""; position: absolute; left: 50%; top: 18%; bottom: 18%; width: 1.5px; margin-left: -0.75px; background: #2dd4bf; opacity: 0.7; }
-.ag-cl { display: flex; align-items: center; gap: 4%; padding: 0 3%; border-radius: 8px; border: 1px solid #2a4063; background: #0f1e33; font: 700 clamp(7px, 3cqw, 11px)/1 var(--mono); color: #e6edf6; }
+.ag-cl { display: flex; align-items: center; gap: 4%; padding: 0 3%; border-radius: 8px; border: 1px solid #2a4063; background: #0f1e33; font: 700 clamp(10px, 3cqw, 12px)/1 var(--mono); color: #e6edf6; }
 .ag-cl.edge { border-style: dashed; border-color: #5b6f8c; }
-.ag-st { position: relative; flex: none; width: 46%; height: 70%; }
-.ag-st span { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 999px; font: 800 clamp(6px, 2.6cqw, 9.5px)/1 var(--font); letter-spacing: 0.03em; }
+.ag-st { position: relative; flex: none; width: 56%; height: 70%; }
+.ag-st span { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 999px; font: 800 clamp(10px, 2.6cqw, 11px)/1 var(--font); letter-spacing: 0.02em; }
 .ag-st .al { background: #0f3b3a; color: #2dd4bf; }
 .ag-st .dn { background: #4a1d27; color: #ff9a9a; }
 .ag-pk { border-radius: 50%; opacity: 0; animation-iteration-count: infinite; animation-timing-function: linear; }
@@ -113,8 +113,8 @@
 .sre .ag-cl.n0 .dn, .sre .ag-cl.n1 .dn { opacity: 0; animation: ag-dn 8s linear infinite; }
 @keyframes ag-al { 0%, 60% { opacity: 1; } 61%, 91% { opacity: 0; } 92%, 100% { opacity: 1; } }
 @keyframes ag-dn { 0%, 60% { opacity: 0; } 61%, 91% { opacity: 1; } 92%, 100% { opacity: 0; } }
-.ag-lease { left:36.6667cqw;top:1.3333cqw;width:12.0000cqw;height:4.0000cqw; text-align: left; font: 700 clamp(6px, 2.7cqw, 10px)/1 var(--mono); color: #f5b544; animation: ag-lease 8s linear infinite; }
-.ag-lease-x { left:36.6667cqw;top:1.3333cqw;width:12.0000cqw;height:4.0000cqw; text-align: left; font: 700 clamp(6px, 2.7cqw, 10px)/1 var(--mono); color: #ff7a7a; opacity: 0; animation: ag-dn 8s linear infinite; }
+.ag-lease { left:36.6667cqw;top:1.3333cqw;width:12.0000cqw;height:4.0000cqw; text-align: left; font: 700 clamp(10px, 2.7cqw, 11px)/1 var(--mono); color: #f5b544; animation: ag-lease 8s linear infinite; }
+.ag-lease-x { left:36.6667cqw;top:1.3333cqw;width:12.0000cqw;height:4.0000cqw; text-align: left; font: 700 clamp(10px, 2.7cqw, 11px)/1 var(--mono); color: #ff7a7a; opacity: 0; animation: ag-dn 8s linear infinite; }
 @keyframes ag-lease { 0%, 60% { opacity: 1; } 61%, 91% { opacity: 0; } 92%, 100% { opacity: 1; } }
 .ag-pk.sc0 { left:19.5000cqw;top:12.1667cqw;width:2.3333cqw;height:2.3333cqw; animation-name: sc0; animation-duration: 4.8s; }
 @keyframes sc0 { 0%, 3.9% { transform: none; opacity: 0; } 4% { transform: none; opacity: 1; } 24% { transform: translateX(32.6667cqw); opacity: 1; } 28.0% { transform: translateX(28.6667cqw); opacity: 0.6; } 31.0%, 100% { transform: translateX(27.3333cqw); opacity: 0; } }

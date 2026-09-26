@@ -340,8 +340,9 @@
     if (reduced) {
       playing = false;
       stop();
-      /* A summary moment: grants delivered, east ALLOW, edge DENY, timer full. */
-      t = starts[STATIC_STEP] + STEPS[STATIC_STEP].d * 0.45;
+      /* The end of step 7, so the scene matches its caption: grants delivered, cluster-edge
+       * DENY and read_secret on cluster-east DENY, timer full. */
+      t = starts[STATIC_STEP] + STEPS[STATIC_STEP].d - 1;
       currentStep = -1;
       paint();
     }

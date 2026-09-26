@@ -4,6 +4,21 @@
 
   var root = document.documentElement;
   var STORAGE_KEY = 'fp-theme';
+  var THEME_COLOR = { dark: '#0c1728', light: '#f3f6fa' };
+
+  /* One request for data/results.json per page, shared by every script that needs it. */
+  var dataPromise = null;
+  window.FleetPermitData = {
+    load: function () {
+      if (!dataPromise) {
+        dataPromise = window.fetch('data/results.json', { cache: 'no-cache' }).then(function (res) {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.json();
+        });
+      }
+      return dataPromise;
+    }
+  };
 
   function storedTheme() {
     try {
@@ -27,7 +42,14 @@
     return root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
   }
 
+  /* The browser UI colour follows the chosen theme. */
+  function syncThemeColor() {
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', THEME_COLOR[effectiveTheme()]);
+  }
+
   function syncToggle() {
+    syncThemeColor();
     var btn = document.querySelector('.theme-toggle');
     if (!btn) return;
     var next = effectiveTheme() === 'dark' ? 'light' : 'dark';
@@ -133,15 +155,37 @@
       }
     });
 
-    /* Scrollable tables get keyboard focus so they can be scrolled without a mouse. */
-    Array.prototype.forEach.call(document.querySelectorAll('.table-wrap'), function (w) {
-      if (w.scrollWidth > w.clientWidth) {
-        w.setAttribute('tabindex', '0');
-        if (!w.hasAttribute('aria-label')) {
+    scrollAreas();
+    document.addEventListener('fp:rendered', scrollAreas);
+    var resizeTimer = 0;
+    window.addEventListener('resize', function () {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(scrollAreas, 200);
+    });
+  }
+
+  /* Areas that scroll sideways (tables, code, wide diagrams) get keyboard focus and a
+   * name so they can be scrolled without a mouse. It runs again after scripts render
+   * content (the fp:rendered event) and after a resize. */
+  function scrollAreas() {
+    var areas = document.querySelectorAll('.table-wrap, .fig-scroll, .code-block pre, details.evidence pre, .callout pre');
+    Array.prototype.forEach.call(areas, function (w) {
+      var scrolls = w.scrollWidth > w.clientWidth + 1;
+      var ours = w.hasAttribute('data-fp-scroll');
+      if (scrolls) {
+        if (!w.hasAttribute('tabindex')) { w.setAttribute('tabindex', '0'); w.setAttribute('data-fp-scroll', ''); }
+        if (w.tagName !== 'PRE' && !w.hasAttribute('aria-label')) {
           var cap = w.querySelector('caption');
+          var named = w.getAttribute('data-label') || (cap ? cap.textContent.trim() : '') || 'Scrollable area';
           w.setAttribute('role', 'region');
-          w.setAttribute('aria-label', cap ? cap.textContent.trim() : 'Scrollable table');
+          w.setAttribute('aria-label', named);
+          w.setAttribute('data-fp-scroll', '');
         }
+      } else if (ours) {
+        w.removeAttribute('tabindex');
+        w.removeAttribute('role');
+        w.removeAttribute('aria-label');
+        w.removeAttribute('data-fp-scroll');
       }
     });
   }

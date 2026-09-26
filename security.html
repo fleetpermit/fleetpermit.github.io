@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0c1728">
 <link rel="icon" href="assets/img/logo-mark.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/img/avatar-512.png">
-<link rel="stylesheet" href="assets/css/site.css?v=f3666cfc82">
+<link rel="stylesheet" href="assets/css/site.css?v=85ea29d818">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="FleetPermit">
 <meta property="og:title" content="Security model | FleetPermit">
@@ -18,7 +18,7 @@
 <meta property="og:image" content="https://fleetpermit.github.io/assets/img/social-preview.png">
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){var d=document.documentElement,t='dark';d.className=d.className.replace('no-js','js');try{var s=localStorage.getItem('fp-theme');if(s==='light'||s==='dark')t=s;}catch(e){}d.setAttribute('data-theme',t);})();</script>
-<script src="assets/js/site.js?v=9cbeaed696" defer></script>
+<script src="assets/js/site.js?v=106244e587" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -54,7 +54,8 @@
     <section id="model" style="margin-bottom:48px" aria-labelledby="model-h">
       <h2 id="model-h">Trust boundaries</h2>
       <figure class="figure">
-        <img src="assets/img/security-model.svg" width="1200" height="660" alt="Trust boundaries and failure handling. The hub cluster contains API server admission (F1: malformed policies are rejected and failMode accepts only Closed), the fleetpermit-controller, which has no access to Secrets, workloads or RBAC but can write ManifestWork for every managed cluster (F2: a render error or missing Placement withdraws grants; F3: Denied and Expired leases are terminal), and the Open Cluster Management hub. ManifestWork crosses the trust boundary to the managed cluster, where work-agent-rbac.yaml adds XAccessPolicy permissions to the OCM work agent. Kubernetes Pod Certificates issue the agent's SPIFFE X.509 identity. The Envoy gateway verifies it over mTLS and evaluates tool name and request time (F4: expiry holds with the hub unreachable; F6: wrong identity, unlisted tool or unselected cluster is denied). A default-deny anchor, when installed, denies calls to a backend with no grant (F5).">
+        <div class="fig-scroll fig-dense" data-label="Trust boundaries diagram, scrolls sideways"><img src="assets/img/security-model.svg" width="1200" height="660" alt="Trust boundaries and failure handling. The hub cluster contains API server admission (F1: malformed policies are rejected and failMode accepts only Closed), the fleetpermit-controller, which has no access to Secrets, workloads or RBAC but can write ManifestWork for every managed cluster (F2: a render error or missing Placement withdraws grants; F3: Denied and Expired leases are terminal), and the Open Cluster Management hub. ManifestWork crosses the trust boundary to the managed cluster, where work-agent-rbac.yaml adds XAccessPolicy permissions to the OCM work agent. Kubernetes Pod Certificates issue the agent's SPIFFE X.509 identity. The Envoy gateway verifies it over mTLS and evaluates tool name and request time (F4: expiry holds with the hub unreachable; F6: wrong identity, unlisted tool or unselected cluster is denied). A default-deny anchor, when installed, denies calls to a backend with no grant (F5)."></div>
+        <a class="fig-open" href="assets/img/security-model.svg">Open the trust boundaries diagram at full size</a>
       </figure>
       <div class="prose">
         <p>The hub makes decisions but does not sit in the request path. Kubernetes RBAC on the hub decides who may write a FleetAccessPolicy (the ceiling) and who may create a ToolAccessLease (activation), so on-call engineers can activate access without being able to change the ceiling. FleetPermit never issues, stores or sees credentials. The gateway authenticates the caller from its mTLS peer certificate.</p>
@@ -134,7 +135,7 @@
           <h2 id="limits-h">Limits</h2>
           <div class="prose">
             <ul>
-              <li>XAccessPolicy (<code>v1alpha1</code>) and XBackend (<code>v0alpha0</code>) in kube-agentic-networking are experimental. Its reference implementation is not described upstream as production-ready.</li>
+              <li>XAccessPolicy (<code>v1alpha1</code>) and XBackend (<code>v0alpha0</code>) in kube-agentic-networking are experimental. Upstream marks its reference implementation as not production-ready.</li>
               <li>kube-agentic-networking v0.2.0 matches the tool name only. A call such as <code>scale_workload</code> with <code>replicas=1000</code> cannot be refused by argument.</li>
               <li>Upstream allows at most 5 XAccessPolicies per target and 10 rules per policy, so about 9 concurrent lease grants fit per policy per cluster. Excess leases are reported as <code>CapacityExceeded</code>, and a lease that fits on no cluster waits in <code>Pending</code>.</li>
               <li>The MCP base protocol methods (<code>initialize</code>, <code>tools/list</code>, <code>ping</code>, <code>completion/*</code>, <code>logging/*</code>, <code>notifications/*</code>, the event stream and session close) are allowed by a separate rule that has no time bound in the data plane; the controller removes it. They cannot call tools.</li>

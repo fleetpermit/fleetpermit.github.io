@@ -57,7 +57,7 @@
   --allow-bg: #dcf4ef;
   --lease: #9a5700;
   --lease-bg: #fcefd6;
-  --deny: #c0344b;
+  --deny: #b42d44;
   --deny-bg: #fbe3e6;
   --focus: #0c1728;
   --code-bg: #0c1728;
@@ -257,7 +257,8 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 2.5rem 0; }
 
 .menu-toggle { display: none; }
 
-@media (max-width: 960px) {
+/* The full navigation needs about 1065 px; below 1080 px it collapses into the menu. */
+@media (max-width: 1080px) {
   .header-inner { flex-wrap: wrap; }
   .js .menu-toggle { display: inline-flex; }
   .site-nav { order: 3; width: 100%; }
@@ -415,6 +416,24 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 2.5rem 0; }
 .figure { margin: 0 0 2rem; }
 .figure img { display: block; width: 100%; border-radius: var(--radius-l); border: 1px solid var(--plate-line); background: var(--plate); }
 .figure figcaption { margin-top: 12px; color: var(--text-2); font-size: var(--step--1); max-width: 80ch; }
+/* Diagrams keep a readable size (their smallest text stays near 10 px): the image has a
+ * minimum width and scrolls sideways inside its wrapper when the page is narrower. */
+.fig-scroll { overflow-x: auto; overscroll-behavior-x: contain; border-radius: var(--radius-l); }
+.fig-scroll img { min-width: 960px; }
+.fig-scroll.fig-dense img { min-width: 1040px; }
+.fig-open { display: none; margin: 8px 0 0; font-size: var(--step--1); }
+@media (max-width: 1120px) { .fig-open { display: block; } }
+/* Up to 1100 px the scroll area spans the whole viewport width, so a 960 px diagram fits
+ * without scrolling on small laptops and has the most room on phones. */
+@media (max-width: 1100px) {
+  .fig-scroll { margin-inline: calc(-1 * var(--gutter)); border-radius: 0; }
+  .fig-scroll img { border-radius: 0; border-inline: 0; }
+}
+/* On the two-column doc pages, wide figures also use the table-of-contents column. */
+@media (min-width: 901px) {
+  .doc-layout.wide-figs .doc-toc { position: static; }
+  .doc-layout.wide-figs .doc-body .figure.wide { margin-left: -268px; }
+}
 
 /* ---------- Animated architecture player ---------- */
 .player { position: relative; }
@@ -723,7 +742,7 @@ details.evidence pre {
 .scenario-table tr.is-target + .evidence-row td, .scenario-table tr:target + .evidence-row td { background: var(--lease-bg); }
 .scenario-table .obs { max-width: 42ch; }
 
-@media (max-width: 760px) {
+@media (max-width: 1100px) {
   .scenario-table thead { display: none; }
   .scenario-table, .scenario-table tbody, .scenario-table tr, .scenario-table td { display: block; width: 100%; }
   .scenario-table tr { border-bottom: 1px solid var(--line); padding: 10px 0; }
@@ -807,14 +826,15 @@ details.evidence pre {
 }
 
 /* ---------- Video ---------- */
-.video-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+/* The recordings are 1234 x 982 terminal captures: one per row, large enough to read. */
+.video-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; max-width: 900px; margin-inline: auto; }
 .video-card { margin: 0; min-width: 0; }
-.video-card video { display: block; width: 100%; aspect-ratio: 16 / 9; background: var(--plate); border-radius: var(--radius-m); border: 1px solid var(--plate-line); }
+.video-card video { display: block; width: 100%; aspect-ratio: 1234 / 982; background: var(--plate); border-radius: var(--radius-m); border: 1px solid var(--plate-line); }
 .video-card figcaption { margin-top: 10px; }
 .video-card figcaption strong { display: block; }
 .video-card figcaption span { color: var(--text-2); font-size: 0.93rem; }
 .video-fallback { min-height: 180px; display: grid; place-content: center; gap: 6px; text-align: center; padding: 16px; border: 1px dashed var(--line-strong); border-radius: var(--radius-m); color: var(--text-2); font-size: 0.95rem; background: var(--surface); }
-@media (max-width: 900px) { .video-grid { grid-template-columns: minmax(0, 1fr); } }
+.video-card .cast { display: block; margin-top: 4px; font-size: 0.88rem; }
 
 /* ---------- Docs layout ---------- */
 .doc-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 48px; align-items: start; }
@@ -1001,10 +1021,19 @@ details.evidence pre {
 .dots { display: inline-flex; align-items: center; gap: 4px; vertical-align: middle; }
 .dot { width: 16px; height: 16px; border-radius: 4px; display: inline-grid; place-items: center; font-size: 10px; font-weight: 800; line-height: 1; }
 .dot.allow { background: var(--allow); color: #06201d; }
+:root[data-theme="light"] .dot.allow { color: #ffffff; }
 .dot.deny { background: var(--deny-bg); box-shadow: inset 0 0 0 1.5px var(--deny); color: var(--deny); }
 .dot.error, .dot.missing { background: var(--bg-2); box-shadow: inset 0 0 0 1.5px var(--line-strong); }
 .dot.bad { outline: 2px solid var(--lease); outline-offset: 1px; }
 @media (max-width: 560px) { .dot { width: 12px; height: 12px; } .mini-matrix { border-spacing: 3px 4px; } }
+@media (max-width: 420px) {
+  .mini-matrix { border-spacing: 1px 4px; font-size: 0.8rem; }
+  .mini-matrix th, .mini-matrix td { padding: 2px 2px; }
+  .mini-matrix tbody th { font-size: 0.74rem; }
+  .mini-matrix thead th { font-size: 0.7rem; }
+  .dot { width: 11px; height: 11px; font-size: 9px; }
+  .dots { gap: 3px; }
+}
 
 /* Independent reproductions. */
 .repro { display: grid; gap: 12px; }
@@ -1121,4 +1150,5 @@ details.evidence pre {
 .star-demo.sd-paused .sd-btn { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) {
   .sd-btn, .sd-fillwrap, .sd-plus, .sd-ring, .sd-sp, .sd-cursor { animation: none !important; }
+  .sd-plus, .sd-fillwrap { display: none; }
 }

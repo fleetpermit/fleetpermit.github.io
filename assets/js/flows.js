@@ -438,7 +438,7 @@
         callAt(st, X, 'restart_workload', 'deny', q[0], 0.55, 0.87);
         callAt(st, W, 'restart_workload', 'deny', q[3], 0.05, 0.45);
         callAt(st, X, 'restart_workload', 'allow', q[3], 0.08, 0.48);
-        if (q[3] > 0.55) measure(st, 'placementChangeMs', 'label change → moved');
+        if (q[3] > 0.55) measure(st, 'S7:labelChangeToAllowMs,labelChangeToDenyMs', 'edge ALLOW / west DENY');
         if (i === 2 || i === 4) [W, X].forEach(function (k) { idle(st, k); });
         if (i === 0) status(st, active ? 'Lease Active' : 'New lease', active ? 'teal' : 'dim');
         if (i === 1) status(st, q[1] > 0.25 ? 'Cluster labels changed on the hub' : 'Lease Active', q[1] > 0.25 ? 'amber' : 'teal');
@@ -508,7 +508,20 @@
   };
 
   /* ---------- state to DOM ---------- */
+  /* A latency key gives its median. "ID:a,b" gives scenario ID's own metrics a and b. */
+  function scenarioMetrics(id) {
+    var list = data && data.e2e && Array.isArray(data.e2e.scenarios) ? data.e2e.scenarios : [];
+    for (var i = 0; i < list.length; i++) if (list[i] && list[i].id === id) return list[i].metrics || {};
+    return null;
+  }
   function measureValue(key) {
+    if (key.indexOf(':') > 0) {
+      var parts = key.split(':'), mt = scenarioMetrics(parts[0]);
+      if (!mt) return '';
+      var vals = parts[1].split(',').map(function (k) { return mt[k]; });
+      if (!vals.every(isNum)) return '';
+      return vals.map(function (v) { return fmt(v, 'ms'); }).join(' / ');
+    }
     var m = data && data.latency && data.latency[key];
     if (!m || !isNum(m.p50)) return '';
     return 'median ' + fmt(m.p50, m.unit || 'ms');
@@ -582,7 +595,7 @@
       if (c.g.__flTool !== o.tool) {
         c.g.__flTool = o.tool;
         text(c.t, o.tool);
-        var w = o.tool.length * 6.1 + 14;
+        var w = o.tool.length * 6.7 + 14;
         attr(c.r, 'x', (-w / 2).toFixed(1));
         attr(c.r, 'width', w.toFixed(1));
       }
@@ -937,6 +950,31 @@
         var obs = typeof x.observed === 'string' ? x.observed.trim() : '';
         if (obs) li.appendChild(h('span', { 'class': 'fl-obs' }, [h('span', { 'class': 'fl-k', text: 'Recorded: ' }), obs]));
       });
+      var sbox = f.panel.querySelector('.fl-smetrics');
+      if (sbox && !sbox.__flFilled) {
+        var sid = sbox.getAttribute('data-scenario');
+        var sm = byId[sid] && byId[sid].metrics;
+        var rowsS = (sbox.getAttribute('data-items') || '').split(';').map(function (item) {
+          var kv = item.split('=');
+          var v = sm ? sm[kv[0]] : null;
+          if (!isNum(v)) return null;
+          return h('div', { 'class': 'fl-m' }, [
+            h('p', { 'class': 'fl-ml', text: kv[1] || kv[0] }),
+            h('p', { 'class': 'fl-mv' }, [h('span', { 'class': 'fl-big' }, [h('b', { text: fmt(v, 'ms') })])])
+          ]);
+        }).filter(Boolean);
+        if (rowsS.length) {
+          sbox.__flFilled = true;
+          sbox.textContent = '';
+          sbox.appendChild(h('h4', { text: 'Measured in the lab' }));
+          rowsS.forEach(function (b) { sbox.appendChild(b); });
+          sbox.appendChild(h('p', { 'class': 'fl-mnote' }, ['Both values come from one run of ', h('a', { href: 'results.html#' + sid, text: sid }),
+            ' in the latest end-to-end run, timed from the label change. Local kind clusters on one development host. Not a production benchmark.']));
+          sbox.hidden = false;
+          var factsS = f.panel.querySelector('.fl-facts');
+          if (factsS) factsS.classList.add('has-metrics');
+        }
+      }
       var box = f.panel.querySelector('.fl-metrics');
       if (!box || box.__flFilled) return;
       var blocks = (box.getAttribute('data-keys') || '').split(/\s+/).filter(Boolean)
@@ -964,11 +1002,11 @@
     });
   }
   if (window.fetch) {
-    fetch(DATA_URL, { cache: 'no-cache' })
+    (window.FleetPermitData ? window.FleetPermitData.load() : fetch(DATA_URL, { cache: 'no-cache' })
       .then(function (res) {
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return res.json();
-      })
+      }))
       .then(function (d) {
         if (!d || typeof d !== 'object') throw new Error('unexpected format');
         data = d;

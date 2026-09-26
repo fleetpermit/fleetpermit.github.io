@@ -159,8 +159,8 @@
       var agree = r.observed === modelSays;
       var note = document.createElement('span');
       note.textContent = (agree ? 'Same as the policy model.' : 'Differs from the policy model.') +
-        (typeof r.latencyMs === 'number' ? ' ' + r.latencyMs + ' ms' : '') +
-        (r.httpStatus ? ', HTTP ' + r.httpStatus : '') + '.';
+        (r.httpStatus ? ' HTTP ' + r.httpStatus + '.' : '') +
+        (typeof r.latencyMs === 'number' ? ' The call took ' + r.latencyMs + ' ms, measured inside the agent pod.' : '');
       recLine.appendChild(note);
       recDetail.textContent = '';
       recDetail.appendChild(document.createTextNode('Gateway response: '));
@@ -175,8 +175,8 @@
     }
 
     if (window.fetch) {
-      fetch('data/results.json', { cache: 'no-cache' })
-        .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+      (window.FleetPermitData ? window.FleetPermitData.load() : fetch('data/results.json', { cache: 'no-cache' })
+        .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); }))
         .then(function (data) {
           var scen = data && data.e2e && Array.isArray(data.e2e.scenarios) ? data.e2e.scenarios : [];
           scen.forEach(function (x) {

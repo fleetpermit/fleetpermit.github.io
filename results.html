@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0c1728">
 <link rel="icon" href="assets/img/logo-mark.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/img/avatar-512.png">
-<link rel="stylesheet" href="assets/css/site.css?v=f3666cfc82">
+<link rel="stylesheet" href="assets/css/site.css?v=85ea29d818">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="FleetPermit">
 <meta property="og:title" content="Test results | FleetPermit">
@@ -18,9 +18,9 @@
 <meta property="og:image" content="https://fleetpermit.github.io/assets/img/social-preview.png">
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){var d=document.documentElement,t='dark';d.className=d.className.replace('no-js','js');try{var s=localStorage.getItem('fp-theme');if(s==='light'||s==='dark')t=s;}catch(e){}d.setAttribute('data-theme',t);})();</script>
-<script src="assets/js/site.js?v=9cbeaed696" defer></script>
-<link rel="stylesheet" href="assets/css/agents.css?v=9dca5593b2">
-<script src="assets/js/results.js?v=64e8e18e31" defer></script>
+<script src="assets/js/site.js?v=106244e587" defer></script>
+<link rel="stylesheet" href="assets/css/agents.css?v=7eebe30126">
+<script src="assets/js/results.js?v=ad8beb0c64" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -64,7 +64,7 @@
       </nav>
     </header>
 
-    <div id="results-root" aria-live="polite" style="padding-bottom:56px">
+    <div id="results-root" aria-busy="true" style="padding-bottom:56px">
       <p class="state">Loading results from <a href="data/results.json">data/results.json</a>.</p>
     </div>
     <noscript><p class="state">The dashboard needs JavaScript to render. The raw data is at <a href="data/results.json">data/results.json</a>.</p></noscript>
@@ -74,7 +74,7 @@
       <div class="prose">
         <p><strong>Pass</strong> means the observed outcome matched the expected one. <strong>Unsupported upstream</strong> means the scenario asks for something the pinned upstream release cannot enforce yet; the result is still recorded. For example, argument-level matching such as refusing <code>replicas=1000</code> is not supported by kube-agentic-networking v0.2.0.</p>
         <p>Scenario IDs are stable. The <a href="demo.html#playground">policy playground</a> links to the scenario that exercises each rule, for example <a href="#S3">S3</a> for a wrong identity and <a href="#S5">S5</a> for expiry.</p>
-        <p>Reproduce the numbers with <code>make demo-up</code>, <code>make test-e2e</code> and <code>make benchmark</code>. The simulated scale rows come from envtest and a simulated OCM work agent. They measure the controller, not managed clusters.</p>
+        <p>Reproduce the numbers with <code>make demo-up</code>, <code>make test</code>, <code>make test-e2e</code>, <code>make benchmark</code> and <code>make conformance</code>, then <code>make results</code>. The simulated scale rows come from envtest and a simulated OCM work agent. They measure the controller, not managed clusters.</p>
       </div>
     </section>
   </div>
