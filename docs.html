@@ -196,12 +196,12 @@ incident-42   sre-remediation   2          2026-09-26T10:15:00Z   Active   1m</c
               <caption class="visually-hidden">FleetAccessPolicy spec fields</caption>
               <thead><tr><th scope="col">Field</th><th scope="col">Default</th><th scope="col">Meaning and validation</th></tr></thead>
               <tbody>
-                <tr><td><code>spec.subjects[].spiffeID</code></td><td>required</td><td>API server: 1 to 16 unique SPIFFE IDs, pattern <code>^spiffe://[a-z0-9._-]+(/[A-Za-z0-9._-]+)*$</code></td></tr>
+                <tr><td><code>spec.subjects[].spiffeID</code></td><td>required</td><td>API server: 1 to 16 unique SPIFFE IDs, pattern <code>^spiffe://[a-z0-9._-]+(/[A-Za-z0-9._-]+)*$</code>; at most 5 when <code>lease.required</code> is <code>false</code></td></tr>
                 <tr><td><code>spec.placement.provider</code></td><td><code>ocm</code></td><td>API server: only <code>ocm</code></td></tr>
                 <tr><td><code>spec.placement.placementRef.name</code></td><td>required</td><td>An OCM Placement in the same namespace. Controller: <code>PlacementNotFound</code> if it is missing</td></tr>
                 <tr><td><code>spec.target.protocol</code></td><td><code>MCP</code></td><td>API server: only <code>MCP</code></td></tr>
                 <tr><td><code>spec.target.namespace</code></td><td>required</td><td>Namespace of the target on each managed cluster. API server: a DNS label</td></tr>
-                <tr><td><code>spec.target.ref.kind</code></td><td><code>XBackend</code></td><td>API server: <code>XBackend</code> or <code>Gateway</code></td></tr>
+                <tr><td><code>spec.target.ref.kind</code></td><td><code>XBackend</code></td><td>API server: <code>XBackend</code> in <code>agentic.networking.x-k8s.io</code>, or <code>Gateway</code> in <code>gateway.networking.k8s.io</code></td></tr>
                 <tr><td><code>spec.target.ref.group</code></td><td><code>agentic.networking.x-k8s.io</code></td><td>API server: or <code>gateway.networking.k8s.io</code></td></tr>
                 <tr><td><code>spec.target.ref.name</code></td><td>required</td><td>The backend or gateway name</td></tr>
                 <tr><td><code>spec.permissions[].tool</code></td><td>required</td><td>API server: 1 to 16 unique MCP tool names, pattern <code>^[A-Za-z0-9][A-Za-z0-9_.-]*$</code>, at most 20 characters. Re-checked by the renderer</td></tr>
@@ -213,7 +213,7 @@ incident-42   sre-remediation   2          2026-09-26T10:15:00Z   Active   1m</c
               </tbody>
             </table>
           </div>
-          <p class="prose">Status reports <code>Ready</code>, <code>Progressing</code> and <code>Degraded</code> conditions, <code>clusterSummary</code> such as <code>2/2</code>, <code>activeLeases</code>, and one entry per selected cluster with its reason and content digest.</p>
+          <p class="prose">Status reports <code>Ready</code>, <code>Progressing</code> and <code>Degraded</code> conditions, <code>clusterSummary</code> such as <code>2/2</code>, <code>activeLeases</code>, and one entry per selected cluster with its reason and content digest. A cluster that left the placement stays listed as <code>Revoking</code> until its ManifestWork is gone, and a cluster is Ready only when OCM's status feedback reports the current content digest. The list holds at most 512 entries, with clusters that are not ready first.</p>
 
           <h3 id="api-lease">ToolAccessLease <span class="muted small">(short name <code>tal</code>)</span></h3>
           <p class="prose">Activates a subset of a policy for a bounded time. The spec is immutable: the API server rejects any change after creation.</p>
@@ -222,7 +222,7 @@ incident-42   sre-remediation   2          2026-09-26T10:15:00Z   Active   1m</c
               <caption class="visually-hidden">ToolAccessLease spec fields</caption>
               <thead><tr><th scope="col">Field</th><th scope="col">Default</th><th scope="col">Meaning and validation</th></tr></thead>
               <tbody>
-                <tr><td><code>spec.policyRef.name</code></td><td>required</td><td>A FleetAccessPolicy in the same namespace. Controller: <code>Denied</code> if it does not exist</td></tr>
+                <tr><td><code>spec.policyRef.name</code></td><td>required</td><td>A FleetAccessPolicy in the same namespace. Controller: a lease created before its policy waits in <code>Pending</code> and activates when the policy appears; a lease whose policy is deleted after it was evaluated is <code>Denied</code></td></tr>
                 <tr><td><code>spec.subject.spiffeID</code></td><td>required</td><td>API server: SPIFFE ID pattern. Controller: must be one of the policy's subjects</td></tr>
                 <tr><td><code>spec.permissions[].tool</code></td><td>required</td><td>API server: 1 to 16 unique tools. Controller: must be a subset of the policy's permissions</td></tr>
                 <tr><td><code>spec.duration</code></td><td>policy <code>defaultDuration</code></td><td>API server: at least <code>10s</code>. Controller: at most the policy's <code>maxDuration</code>. When omitted, the default at first evaluation is pinned through <code>status.expiresAt</code></td></tr>
@@ -253,9 +253,9 @@ incident-42   sre-remediation   2          2026-09-26T10:15:00Z   Active   1m</c
                 <tr><td><code>LeaseActive</code></td><td>Ready=True</td><td>Granted and enforced on every target cluster</td></tr>
                 <tr><td><code>RollingOut</code></td><td>Progressing=True</td><td>Delivery or acceptance pending on some clusters</td></tr>
                 <tr><td><code>NoEligibleClusters</code></td><td>Ready=False</td><td>None of the requested clusters is currently placed (phase Pending)</td></tr>
-                <tr><td><code>CapacityExceeded</code></td><td>Degraded=True</td><td>Upstream rule limit reached on the listed clusters. If that is every cluster, the lease is <code>Pending</code> and activates when capacity frees up</td></tr>
+                <tr><td><code>CapacityExceeded</code></td><td>Degraded=True</td><td>Upstream rule limit reached on the listed clusters. If that is every cluster, the lease is <code>Pending</code> and activates when capacity frees up. On a policy, standing grants did not fit</td></tr>
                 <tr><td><code>ClustersFailed</code></td><td>Degraded=True</td><td>Apply failed, rejected by enforcement, or cluster unavailable</td></tr>
-                <tr><td><code>PolicyNotFound</code></td><td>Denied=True</td><td>The referenced policy does not exist</td></tr>
+                <tr><td><code>PolicyNotFound</code></td><td>Ready=False (phase Pending), or Denied=True</td><td>The referenced policy does not exist. A lease never evaluated against it waits in <code>Pending</code>; a lease whose policy was deleted after evaluation is <code>Denied</code></td></tr>
                 <tr><td><code>SubjectNotAllowed</code></td><td>Denied=True</td><td>The subject is not in the policy</td></tr>
                 <tr><td><code>PermissionNotAllowed</code></td><td>Denied=True</td><td>A requested tool is not in the policy</td></tr>
                 <tr><td><code>DurationExceedsMaximum</code></td><td>Denied=True</td><td>The duration exceeds <code>maxDuration</code></td></tr>
