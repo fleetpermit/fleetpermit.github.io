@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Demo and policy playground | FleetPermit</title>
 <meta name="description" content="Try the FleetPermit policy model in an interactive playground, watch the demo recordings, and reproduce the lab yourself.">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#0c1728">
 <link rel="icon" href="assets/img/logo-mark.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/img/avatar-512.png">
@@ -17,7 +17,7 @@
 <meta property="og:url" content="https://fleetpermit.github.io/demo.html">
 <meta property="og:image" content="https://fleetpermit.github.io/assets/img/social-preview.png">
 <meta name="twitter:card" content="summary_large_image">
-<script>(function(){var d=document.documentElement;d.className=d.className.replace('no-js','js');try{var t=localStorage.getItem('fp-theme');if(t==='light'||t==='dark')d.setAttribute('data-theme',t);}catch(e){}})();</script>
+<script>(function(){var d=document.documentElement,t='dark';d.className=d.className.replace('no-js','js');try{var s=localStorage.getItem('fp-theme');if(s==='light'||s==='dark')t=s;}catch(e){}d.setAttribute('data-theme',t);})();</script>
 <script src="assets/js/site.js" defer></script>
 <script src="assets/js/playground.js" defer></script>
 </head>
@@ -38,9 +38,10 @@
       </ul>
     </nav>
     <div class="header-actions">
-      <a class="icon-btn" href="https://github.com/fleetpermit/fleetpermit"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg><span class="gh-label">GitHub</span><span class="visually-hidden"> repository</span></a>
+      <a class="icon-btn star-btn" href="https://github.com/fleetpermit/fleetpermit" aria-label="Star FleetPermit on GitHub" title="Star FleetPermit on GitHub"><span class="star-g" aria-hidden="true"><svg class="star-ico" viewBox="0 0 24 24" focusable="false"><path d="M12 2.6l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9z"/></svg></span><span class="star-label">Star</span></a>
+      <a class="icon-btn gh-btn" href="https://github.com/fleetpermit/fleetpermit"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg><span class="gh-label">GitHub</span><span class="visually-hidden"> repository</span></a>
       <button class="icon-btn theme-toggle" type="button" aria-label="Switch theme"><svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg></button>
-      <button class="icon-btn menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span>Menu</span></button>
+      <button class="icon-btn menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span class="menu-label">Menu</span></button>
     </div>
   </div>
 </header>
@@ -58,7 +59,7 @@
         <h2 id="pg-title">Policy playground</h2>
         <p>Pick an agent, a tool, a cluster and the lease state. The playground applies the same four questions FleetPermit asks and shows the first one that fails.</p>
       </div>
-      <p class="callout"><strong>Educational visualization of the policy model — it does not contact a Kubernetes cluster.</strong>Each outcome links to the real end-to-end scenario that exercises it.</p>
+      <p class="callout"><strong>Educational visualization of the policy model — it does not contact a Kubernetes cluster.</strong>Next to the model's answer, the playground shows the decision recorded for the same combination during the lab run in <a href="data/results.json">data/results.json</a>, and links to the end-to-end scenario that exercises it.</p>
 
       <div class="playground">
         <form class="pg-form" id="pg-form" aria-describedby="pg-model">
@@ -74,6 +75,7 @@
             <div class="seg">
               <label><input type="radio" name="tool" value="get_cluster_health"><span>get_cluster_health</span></label>
               <label><input type="radio" name="tool" value="restart_workload" checked><span>restart_workload</span></label>
+              <label><input type="radio" name="tool" value="scale_workload"><span>scale_workload</span></label>
               <label><input type="radio" name="tool" value="read_secret"><span>read_secret</span></label>
             </div>
           </fieldset>
@@ -104,9 +106,19 @@
         </form>
 
         <div class="pg-result" id="pg-result" aria-live="polite" aria-atomic="true">
-          <div class="verdict allow" id="pg-verdict">
-            <span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
-            <span id="pg-verdict-text">ALLOW</span>
+          <div class="pg-compare">
+            <div class="pg-side pg-model-side">
+              <p class="pg-model-head"><span class="tag-model">Policy model</span>What the policy says</p>
+              <div class="verdict allow" id="pg-verdict">
+                <span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+                <span id="pg-verdict-text">ALLOW</span>
+              </div>
+            </div>
+            <section class="pg-recorded pg-side" id="pg-recorded" aria-labelledby="pg-rec-h" hidden>
+              <h3 id="pg-rec-h"><span class="tag-rec">Recorded in the lab</span>What the gateway actually did</h3>
+              <p class="rec-line" id="pg-rec-line"></p>
+              <p class="rec-detail" id="pg-rec-detail"></p>
+            </section>
           </div>
           <p id="pg-summary" style="margin:0">sre-agent may call restart_workload on cluster-east while the lease is active.</p>
           <ol class="checks" id="pg-checks" aria-label="Checks in order">
@@ -119,6 +131,10 @@
           <p style="margin:0"><a id="pg-link" href="results.html#S1">See the matching real scenario: S1</a></p>
         </div>
       </div>
+      <figure class="figure" style="margin-top:28px">
+        <img src="assets/img/decision-matrix.svg" width="1200" height="600" loading="lazy" alt="The whole rule as two grids of 2 agents by 3 clusters by 4 tools. With the lease active, only sre-agent calling get_cluster_health or restart_workload on cluster-east or cluster-west is allowed; every other combination is denied. With the lease expired, every combination is denied.">
+        <figcaption>The whole rule at a glance: expected decisions from the policy, not test results. The recorded outcomes are on the <a href="results.html#matrix">results page</a>.</figcaption>
+      </figure>
       <noscript><p class="state" style="margin-top:16px">The playground needs JavaScript. The rule is simple: ALLOW only when the agent is sre-agent, the cluster is east or west, the tool is get_cluster_health or restart_workload, and the lease is active.</p></noscript>
     </div>
   </section>

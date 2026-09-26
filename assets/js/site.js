@@ -22,12 +22,9 @@
     }
   }
 
-  var systemDark = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
-
+  /* Dark unless the visitor chose light; the system colour-scheme preference is not used for the default. */
   function effectiveTheme() {
-    var attr = root.getAttribute('data-theme');
-    if (attr === 'light' || attr === 'dark') return attr;
-    return systemDark && systemDark.matches ? 'dark' : 'light';
+    return root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
   }
 
   function syncToggle() {
@@ -38,8 +35,7 @@
     btn.setAttribute('title', 'Switch to ' + next + ' theme');
   }
 
-  var initial = storedTheme();
-  if (initial) root.setAttribute('data-theme', initial);
+  root.setAttribute('data-theme', storedTheme() || 'dark');
 
   function onReady() {
     syncToggle();
@@ -53,12 +49,6 @@
         syncToggle();
       });
     }
-    if (systemDark) {
-      var onChange = function () { if (!storedTheme()) syncToggle(); };
-      if (systemDark.addEventListener) systemDark.addEventListener('change', onChange);
-      else if (systemDark.addListener) systemDark.addListener(onChange);
-    }
-
     /* Mobile navigation (disclosure pattern). */
     var menuBtn = document.querySelector('.menu-toggle');
     var nav = document.getElementById('site-nav');

@@ -5,7 +5,8 @@
 
   var preview = document.getElementById('results-preview');
   var root = document.getElementById('results-root');
-  if (!preview && !root) return;
+  var answerStats = document.getElementById('answer-stats');
+  if (!preview && !root && !answerStats) return;
 
   var DATA_URL = 'data/results.json';
   var DISCLAIMER = 'Local kind clusters on one development host — not a production benchmark.';
@@ -94,12 +95,333 @@
     return parts.join(', ');
   }
 
+  /* ---------- Decision matrix (e2e scenario "MATRIX") ---------- */
+  var PREFERRED = {
+    cluster: ['cluster-east', 'cluster-west', 'cluster-edge'],
+    tool: ['get_cluster_health', 'restart_workload', 'scale_workload', 'read_secret'],
+    lease: ['active', 'expired']
+  };
+  function ordered(values, preferred) {
+    var seen = [];
+    values.forEach(function (v) { if (seen.indexOf(v) === -1) seen.push(v); });
+    var out = (preferred || []).filter(function (v) { return seen.indexOf(v) !== -1; });
+    seen.forEach(function (v) { if (out.indexOf(v) === -1) out.push(v); });
+    return out;
+  }
+  function matrixModel(data) {
+    var e2e = (data && data.e2e) || {};
+    var scen = Array.isArray(e2e.scenarios) ? e2e.scenarios : [];
+    var m = null;
+    scen.forEach(function (x) { if (x && x.id === 'MATRIX' && Array.isArray(x.evidence)) m = x; });
+    if (!m) return null;
+    var rows = m.evidence.filter(function (r) { return r && typeof r === 'object' && r.agent && r.cluster && r.tool && r.lease; });
+    if (!rows.length) return null;
+    var agentNames = Array.isArray(e2e.agents) ? e2e.agents.map(function (a) { return a && a.name; }).filter(Boolean) : [];
+    var map = {};
+    rows.forEach(function (r) { map[[r.agent, r.cluster, r.tool, r.lease].join('|')] = r; });
+    function matches(r) { return r.match === true || (r.match === undefined && r.expected && r.expected === r.observed); }
+    var matched = rows.filter(matches).length;
+    return {
+      scenario: m,
+      rows: rows,
+      agents: ordered(rows.map(function (r) { return r.agent; }), agentNames),
+      clusters: ordered(rows.map(function (r) { return r.cluster; }), PREFERRED.cluster),
+      tools: ordered(rows.map(function (r) { return r.tool; }), PREFERRED.tool),
+      leases: ordered(rows.map(function (r) { return r.lease; }), PREFERRED.lease),
+      get: function (a, c, t, l) { return map[[a, c, t, l].join('|')] || null; },
+      matches: matches,
+      total: rows.length,
+      matched: matched
+    };
+  }
+  function obsKind(v) { return v === 'ALLOW' ? 'allow' : v === 'DENY' ? 'deny' : v ? 'error' : 'missing'; }
+  function breakable(name) {
+    var span = h('span');
+    String(name).split('_').forEach(function (part, i, arr) {
+      span.appendChild(document.createTextNode(part + (i < arr.length - 1 ? '_' : '')));
+      if (i < arr.length - 1) span.appendChild(document.createElement('wbr'));
+    });
+    return span;
+  }
+  function matrixSummary(mm) {
+    var bad = mm.total - mm.matched;
+    return h('p', { class: 'matrix-summary' }, [
+      h('span', null, [h('b', { text: String(mm.total) }), ' real calls,']),
+      h('span', null, [h('b', { class: bad ? 'bad' : 'ok', text: String(mm.matched) }), ' matched expectation' + (bad ? ',' : '.')]),
+      bad ? h('span', null, [h('b', { class: 'bad', text: String(bad) }), ' did not.']) : null
+    ]);
+  }
+  function matrixGrid(mm, lease) {
+    var thead = h('thead', null, [h('tr', null, [h('th', { scope: 'col', text: 'Agent' }), h('th', { scope: 'col', text: 'Cluster' })]
+      .concat(mm.tools.map(function (t) { return h('th', { scope: 'col' }, [breakable(t)]); })))]);
+    var table = h('table', { class: 'matrix-table' }, [
+      h('caption', { class: 'visually-hidden', text: 'Lease ' + lease + ': observed and expected decision for each agent, cluster and tool' }),
+      thead
+    ]);
+    mm.agents.forEach(function (agent) {
+      var body = h('tbody');
+      mm.clusters.forEach(function (cluster, ci) {
+        var cells = [];
+        if (ci === 0) cells.push(h('th', { scope: 'rowgroup', rowspan: String(mm.clusters.length), class: 'agent' }, [h('a', { href: '#agent-' + agent, text: agent })]));
+        cells.push(h('th', { scope: 'row', text: cluster.replace(/^cluster-/, '') }));
+        mm.tools.forEach(function (tool) {
+          var r = mm.get(agent, cluster, tool, lease);
+          if (!r) { cells.push(h('td', { class: 'o-missing' }, [h('span', { class: 'm-exp', text: 'not recorded' })])); return; }
+          var ok = mm.matches(r);
+          var title = (r.detail ? r.detail + ' ' : '') + (isNum(r.latencyMs) ? '(' + r.latencyMs + ' ms)' : '');
+          cells.push(h('td', { class: 'o-' + obsKind(r.observed) + (ok ? '' : ' mismatch'), title: title.trim() || null }, [
+            h('span', { class: 'm-obs' }, [
+              h('span', { text: r.observed || 'n/a' }),
+              h('span', { class: 'm-mark ' + (ok ? 'ok' : 'bad'), 'aria-hidden': 'true', text: ok ? '✓' : '✗' })
+            ]),
+            h('span', { class: 'm-exp', text: 'expected ' + (r.expected || 'n/a') }),
+            h('span', { class: 'visually-hidden', text: ok ? ', matches expectation' : ', does not match expectation' })
+          ]));
+        });
+        body.appendChild(h('tr', null, cells));
+      });
+      table.appendChild(body);
+    });
+    return h('div', { class: 'matrix-grid' }, [
+      h('h4', null, ['Lease ', h('span', { class: 'pill ' + (lease === 'active' ? 'pill-lease' : 'pill-deny'), text: lease })]),
+      h('div', { class: 'table-wrap' }, [table])
+    ]);
+  }
+  function matrixLegend() {
+    return h('p', { class: 'matrix-legend' }, [
+      h('span', null, [h('span', { class: 'pill pill-allow', text: 'ALLOW' }), 'observed allow']),
+      h('span', null, [h('span', { class: 'pill pill-deny', text: 'DENY' }), 'observed deny']),
+      h('span', null, [h('span', { class: 'm-mark ok', 'aria-hidden': 'true', text: '✓' }), 'matches the expected decision']),
+      h('span', null, [h('span', { class: 'm-mark bad', 'aria-hidden': 'true', text: '✗' }), 'differs from it'])
+    ]);
+  }
+  function matrixSection(data) {
+    var e2e = data.e2e || {};
+    var mm = matrixModel(data);
+    var agents = testAgentsBlock(data);
+    if (!mm && !agents) return null;
+    var kids = [];
+    if (agents) kids.push(h('h3', { text: 'Meet the test agents' }), agents);
+    if (mm) {
+      kids.push(h('h3', { text: 'Expected vs observed, per call' }));
+      kids.push(matrixSummary(mm));
+      if (mm.scenario.expected) kids.push(h('p', { class: 'muted', style: 'max-width:75ch' }, ['Expected: ' + mm.scenario.expected + '.']));
+      kids.push(matrixLegend());
+      kids.push(h('div', { class: 'matrix-grids' }, mm.leases.map(function (l) { return matrixGrid(mm, l); })));
+      kids.push(h('p', { class: 'matrix-note' }, ['Every cell is one real MCP call through the gateway on that cluster. The raw probe output for each call is in the ',
+        h('a', { href: '#MATRIX', text: 'MATRIX scenario' }), '.']));
+    }
+    return section('matrix', 'Test agents and expected outcomes',
+      'Two workload identities call four tools on three clusters, with the lease active and after it expired. The expected decision comes from the policy; the observed one from the gateway.', kids);
+  }
+
+  /* ---------- Meet the test agents ---------- */
+  var BLOB = 'https://github.com/fleetpermit/fleetpermit/blob/main/';
+  var AGENT_INFO = {
+    'sre-agent': {
+      kind: 'subject',
+      one: 'A test client pod whose identity is listed in the policy, so it can hold leases.',
+      expected: 'ALLOW only on cluster-east and cluster-west, only for the leased tools (get_cluster_health and restart_workload), and only while the lease is active. DENY for scale_workload (the policy permits it, but the lease does not), read_secret (not permitted), anything on cluster-edge (outside the placement), and every call after the lease expires.',
+      links: [['Test client (probe)', BLOB + 'demo/tools/probe/main.go'], ['How the agent pods are deployed', BLOB + 'demo/scripts/render-agents.sh'], ['The policy that lists it', BLOB + 'config/samples/fleetaccesspolicy.yaml']]
+    },
+    'security-agent': {
+      kind: 'unlisted',
+      one: 'The same test client with a different identity. The gateways trust its certificate, but no policy lists it.',
+      expected: 'DENY for every call, on every cluster, for every tool, with or without a lease. It shows that a valid identity alone grants nothing.',
+      links: [['Test client (probe)', BLOB + 'demo/tools/probe/main.go'], ['How the agent pods are deployed', BLOB + 'demo/scripts/render-agents.sh'], ['The scenarios that drive both agents', BLOB + 'test/e2e/run.sh']]
+    }
+  };
+  /* Static markup for the lane animation (no data inside). */
+  function laneStage(kind) {
+    var sre = kind === 'subject';
+    var st = function (lane) {
+      if (sre && lane < 2) return '<span class="ag-st"><span class="al">ALLOW</span><span class="dn">DENY</span></span>';
+      return '<span class="ag-st"><span class="dn">DENY</span></span>';
+    };
+    var names = ['east', 'west', 'edge'];
+    var html = '<span class="ag-lbl ag-l-agent">agent pod</span><span class="ag-lbl ag-l-gate">gateway</span><span class="ag-lbl ag-l-cl">cluster</span>' +
+      '<span class="ag-pod">pod<small>ns agents</small></span>';
+    for (var i = 0; i < 3; i++) {
+      html += '<span class="ag-lane n' + i + '"></span><span class="ag-lane2 n' + i + '"></span><span class="ag-gate n' + i + '"></span>' +
+        '<span class="ag-cl n' + i + (i === 2 ? ' edge' : '') + '"><span>' + names[i] + '</span>' + st(i) + '</span>';
+    }
+    if (sre) {
+      for (var t = 0; t < 8; t++) html += '<span class="ag-o ag-tick t' + t + '"></span>';
+      html += '<span class="ag-o ag-lease">lease</span><span class="ag-o ag-lease-x">expired</span>';
+      ['sa1', 'sa2', 'sa3', 'sa4', 'sa5'].forEach(function (n) { html += '<span class="ag-o ag-pk amber ' + n + '"></span>'; });
+      html += '<span class="ag-o ag-ok sa1f"></span><span class="ag-o ag-ok sa2f"></span><span class="ag-o ag-x sa3f"></span><span class="ag-o ag-x sa4f"></span><span class="ag-o ag-x sa5f"></span>';
+    } else {
+      for (var k = 0; k < 3; k++) html += '<span class="ag-o ag-pk slate sc' + k + '"></span><span class="ag-o ag-x sc' + k + 'f"></span>';
+    }
+    var stage = h('div', { class: 'ag-stage ' + (sre ? 'sre' : 'sec'), 'aria-hidden': 'true' });
+    stage.innerHTML = html;
+    return stage;
+  }
+  var stageObserver = null;
+  function observeStage(stage) {
+    stage.classList.add('ag-paused');
+    if (!('IntersectionObserver' in window)) { stage.classList.remove('ag-paused'); return; }
+    if (!stageObserver) {
+      stageObserver = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) { e.target.__fpVisible = e.isIntersecting; e.target.classList.toggle('ag-paused', !e.isIntersecting || document.hidden); });
+      }, { threshold: 0.1 });
+      document.addEventListener('visibilitychange', function () {
+        Array.prototype.forEach.call(document.querySelectorAll('.ag-stage'), function (st) { st.classList.toggle('ag-paused', document.hidden || !st.__fpVisible); });
+      });
+    }
+    stageObserver.observe(stage);
+  }
+  function agentObserved(mm, name) {
+    if (!mm) return null;
+    var rows = mm.rows.filter(function (r) { return r.agent === name; });
+    if (!rows.length) return null;
+    var ok = rows.filter(mm.matches).length;
+    var allow = rows.filter(function (r) { return r.observed === 'ALLOW'; }).length;
+    var err = rows.filter(function (r) { return r.observed && r.observed !== 'ALLOW' && r.observed !== 'DENY'; }).length;
+    return [h('b', { text: String(rows.length) }), ' calls, ', h('b', { text: String(ok) }), ' as expected, ', h('b', { text: String(allow) }), ' ALLOW' + (err ? ', ' + err + ' ERROR' : '') + '.'];
+  }
+  function testAgentsBlock(data) {
+    var e2e = (data && data.e2e) || {};
+    var mm = matrixModel(data);
+    var list = Array.isArray(e2e.agents) && e2e.agents.length ? e2e.agents : null;
+    if (!list && mm) list = mm.agents.map(function (n) { return { name: n }; });
+    if (!list) return null;
+    var wrap = h('div', { class: 'test-agents' });
+    wrap.appendChild(h('div', { class: 'agents-intro' }, [
+      h('p', { class: 'lead', text: 'Both are test clients from this repository, not third-party or AI agents.' }),
+      h('p', { text: 'They are two ordinary pods in namespace agents on cluster-east. Both run the same small test client, the probe. Each run makes one MCP call (initialize, then tools/call) over mTLS to one cluster’s gateway and records the answer. The only difference between them is their identity.' }),
+      h('p', { class: 'small' }, [h('a', { href: BLOB + 'demo/tools/mcp-server/main.go', text: 'The MCP tool server they call' }), '. ',
+        h('a', { href: BLOB + 'test/e2e/run.sh', text: 'The scenarios that drive them' }), '. Identity background: ',
+        h('a', { href: 'https://github.com/kubernetes/enhancements/tree/master/keps/sig-auth/4317-pod-certificates', text: 'Kubernetes Pod Certificates' }), ' and ',
+        h('a', { href: 'https://spiffe.io/docs/latest/spiffe-about/overview/', text: 'SPIFFE' }), '.'])
+    ]));
+    wrap.appendChild(h('details', { class: 'agents-own' }, [
+      h('summary', { text: 'Using your own agent' }),
+      h('div', null, [
+        h('p', { text: 'Any agent, in any framework or language, works the same way. FleetPermit never sees the agent’s code. The agent needs three things:' }),
+        h('ol', null, [
+          h('li', { text: 'A SPIFFE X.509 identity that the gateways trust. In the lab the cluster issues it. Across organisations, use a federated trust domain, for example SPIRE federation.' }),
+          h('li', { text: 'Network reach to a cluster’s gateway.' }),
+          h('li', { text: 'To be listed as a subject in a FleetAccessPolicy and to hold an active lease.' })
+        ]),
+        h('p', { text: 'An agent without a trusted certificate is rejected during the mTLS handshake, before any MCP message. An agent with a trusted but unlisted identity is denied, like security-agent.' }),
+        h('p', null, ['See the ', h('a', { href: 'https://github.com/kubernetes-sigs/kube-agentic-networking/tree/v0.2.0/site-src/guides/quickstart', text: 'kube-agentic-networking quickstart' }), ', section “Bring your own agent”.'])
+      ])
+    ]));
+    var ul = h('ul', { class: 'agent-cards2', 'aria-label': 'Test agents' });
+    list.forEach(function (ag) {
+      ag = ag || {};
+      var name = String(ag.name || '');
+      var info = AGENT_INFO[name] || { kind: '', one: ag.role ? ag.role.charAt(0).toUpperCase() + ag.role.slice(1) + '.' : '', expected: '', links: [] };
+      var sid = ag.spiffeID || (name ? 'spiffe://cluster.local/ns/agents/sa/' + name : '');
+      var obs = agentObserved(mm, name);
+      var dl = h('dl');
+      if (info.expected) { dl.appendChild(h('dt', { text: 'Expected' })); dl.appendChild(h('dd', { text: info.expected })); }
+      if (obs) { dl.appendChild(h('dt', { text: 'Observed in the lab' })); dl.appendChild(h('dd', { class: 'obs' }, obs)); }
+      var card = h('li', { class: 'agent-card2 ' + info.kind, id: 'agent-' + name }, [
+        h('h4', { text: name }),
+        info.one ? h('p', { class: 'one', text: info.one }) : null,
+        info.kind ? laneStage(info.kind) : null,
+        sid ? h('code', { class: 'sid', text: sid }) : null,
+        dl,
+        info.links.length ? h('ul', { class: 'src', 'aria-label': 'Source for ' + name }, info.links.map(function (l) { return h('li', null, [h('a', { href: l[1], text: l[0] })]); })) : null
+      ]);
+      ul.appendChild(card);
+    });
+    wrap.appendChild(ul);
+    Array.prototype.forEach.call(wrap.querySelectorAll('.ag-stage'), observeStage);
+    return wrap;
+  }
+
+  /* Compact matrix for the home page. */
+  function labVerified(data) {
+    var mm = matrixModel(data);
+    if (!mm) return null;
+    var head = h('tr', null, [h('th', { scope: 'col', text: 'Agent and lease' })].concat(mm.clusters.map(function (c) { return h('th', { scope: 'col', text: c }); })));
+    var body = h('tbody');
+    mm.agents.forEach(function (agent) {
+      mm.leases.forEach(function (lease) {
+        var cells = [h('th', { scope: 'row' }, [h('a', { href: '#agent-' + agent, text: agent }), h('small', { text: 'lease ' + lease })])];
+        mm.clusters.forEach(function (cluster) {
+          var parts = [], allOk = true;
+          var dots = h('span', { class: 'dots', 'aria-hidden': 'true' }, mm.tools.map(function (tool) {
+            var r = mm.get(agent, cluster, tool, lease);
+            var k = r ? obsKind(r.observed) : 'missing';
+            var ok = r ? mm.matches(r) : false;
+            if (!ok) allOk = false;
+            parts.push(tool + ' ' + (r ? r.observed : 'not recorded'));
+            return h('span', { class: 'dot ' + k + (ok ? '' : ' bad'), title: tool + ': ' + (r ? r.observed + ', expected ' + r.expected : 'not recorded') }, [k === 'allow' ? '✓' : k === 'deny' ? '' : '?']);
+          }));
+          cells.push(h('td', null, [dots, h('span', { class: 'visually-hidden', text: parts.join(', ') + (allOk ? '; all as expected.' : '; at least one differs from the expected decision.') })]));
+        });
+        body.appendChild(h('tr', null, cells));
+      });
+    });
+    return h('div', { class: 'lab-verified' }, [
+      h('h3', { text: 'What the lab verified' }),
+      h('p', null, [mm.total + ' real calls, ' + mm.matched + ' matched expectation. Squares, left to right: ' + mm.tools.join(', ') + '. Filled teal is ALLOW; outlined coral is DENY.']),
+      h('div', { class: 'table-wrap', style: 'border:0;background:none' }, [h('table', { class: 'mini-matrix' }, [
+        h('caption', { class: 'visually-hidden', text: 'Recorded decisions per agent, lease state and cluster' }),
+        h('thead', null, [head]), body
+      ])]),
+      h('p', { class: 'small', style: 'margin:10px 0 0' }, [h('a', { href: 'results.html#matrix', text: 'Every call with expected and observed decisions' })])
+    ]);
+  }
+
+  /* Headline numbers for "FleetPermit in five answers". Missing values are simply left out. */
+  function renderAnswers(data) {
+    var items = [];
+    var e2e = data.e2e || {}, sum = e2e.summary || {};
+    if (isNum(sum.passed) && isNum(sum.total)) {
+      items.push([sum.passed + ' of ' + sum.total, 'end-to-end scenarios passed' + (isNum(sum.unsupported) && sum.unsupported ? ' (' + sum.unsupported + ' unsupported upstream)' : ''), sum.failed === 0]);
+    }
+    var mm = matrixModel(data);
+    if (mm) items.push([mm.matched + ' of ' + mm.total, 'matrix calls matched the expected decision', mm.matched === mm.total]);
+    var rep = Array.isArray(data.reproductions) && data.reproductions[0] ? data.reproductions[0] : null;
+    if (rep && rep.summary && isNum(rep.summary.passed) && isNum(rep.summary.total)) {
+      items.push([rep.summary.passed + ' of ' + rep.summary.total, 'passed again in an independent run' + (rep.runner ? ' on ' + rep.runner : ''), rep.summary.failed === 0]);
+    }
+    var lat = data.latency || {};
+    [['activationToAllowMs', 'median, lease created to first ALLOW'], ['revocationToDenyMs', 'median, lease deleted to first DENY'], ['expiryToDenyHubDownMs', 'median, expiry to DENY with the hub disconnected']].forEach(function (x) {
+      var m = lat[x[0]];
+      if (m && isNum(m.p50)) items.push([fmt(m.p50, m.unit || 'ms'), x[1], false]);
+    });
+    if (!items.length) return;
+    answerStats.textContent = '';
+    items.forEach(function (it) {
+      answerStats.appendChild(h('li', { class: it[2] ? 'ok' : '' }, [h('b', { text: it[0] }), h('span', { text: it[1] })]));
+    });
+    answerStats.hidden = false;
+  }
+
+  /* Independent reproductions of the end-to-end suite. */
+  function reproductionsBlock(reps) {
+    if (!Array.isArray(reps) || !reps.length) return null;
+    return h('div', { class: 'repro' }, reps.map(function (r) {
+      r = r || {};
+      var env = r.environment || {}, sm = r.summary || {};
+      var envText = [[env.os, env.arch].filter(Boolean).join(' '), env.containerEngine, env.kubernetes ? 'Kubernetes ' + env.kubernetes : '', env.fleetpermitCommit ? 'commit ' + env.fleetpermitCommit : ''].filter(Boolean).join(', ');
+      return h('article', { class: 'repro-card' }, [
+        h('h3', { text: r.runner || 'Independent run' }),
+        h('p', null, [envText ? envText + '. ' : '', r.finishedAt ? 'Finished ' + fmtDate(r.finishedAt) + '. ' : '',
+          r.runURL ? h('a', { href: r.runURL, text: 'View the run' }) : null]),
+        isNum(sm.passed) && isNum(sm.total) ? h('p', { class: 'score' }, [sm.passed + ' of ' + sm.total, h('small', { text: 'passed' + (isNum(sm.failed) ? ', ' + sm.failed + ' failed' : '') + (isNum(sm.unsupported) && sm.unsupported ? ', ' + sm.unsupported + ' unsupported' : '') })]) : null
+      ]);
+    }));
+  }
+
+
+
   /* ---------- Home page preview ---------- */
   function renderPreview(data) {
     preview.textContent = '';
     var e2e = data.e2e || {};
     var banner = sampleBanner(data);
     if (banner) preview.appendChild(banner);
+    var lv = labVerified(data);
+    if (lv) preview.appendChild(lv);
+    var ta = testAgentsBlock(data);
+    if (ta) preview.appendChild(h('div', { class: 'lab-agents' }, [h('h3', { text: 'Meet the test agents' }), ta]));
     if (e2e.summary) preview.appendChild(statRow(e2e.summary));
     var lat = data.latency || {};
     var keys = Object.keys(lat).slice(0, 3);
@@ -344,6 +666,9 @@
       h('span', null, ['Results file generated ', fmtDate(data.generatedAt), '. ', data.source ? h('a', { href: data.source, text: 'Raw results in the repository' }) : '', '.'])
     ]));
 
+    var ms = matrixSection(data);
+    if (ms) root.appendChild(ms);
+
     var scen = Array.isArray(e2e.scenarios) ? e2e.scenarios : [];
     root.appendChild(section('e2e', 'Real multi-cluster end-to-end scenarios',
       'Every decision is a real MCP call from a real SPIFFE identity through a real Envoy gateway on a managed cluster.', [
@@ -356,8 +681,13 @@
         scen.length ? scenarioTable(scen) : h('p', { class: 'state', text: 'No scenarios in this results file.' })
       ]));
 
+    var rb = reproductionsBlock(data.reproductions);
+    if (rb) root.appendChild(section('reproductions', 'Independent reproductions',
+      'The same end-to-end suite, run from a clean checkout on other infrastructure.', [rb]));
+
+    var method = data.benchmarkEnvironment && data.benchmarkEnvironment.method;
     root.appendChild(section('latency', 'Latency on the local lab',
-      'Measured by polling the gateway with real MCP calls roughly every 250 ms, so each value includes that polling granularity.', [latencyBlock(data.latency)]));
+      method ? 'Method: ' + method + '.' : 'Measured by polling the gateway with real MCP calls, so each value includes the polling granularity.', [latencyBlock(data.latency)]));
 
     root.appendChild(section('scale', 'Simulated controller scale (envtest, no real clusters)',
       (data.scale && data.scale.environment && data.scale.environment.description ? data.scale.environment.description + '. ' : '') +
@@ -407,6 +737,7 @@
         if (!data || typeof data !== 'object') throw new Error('unexpected format');
         if (preview) renderPreview(data);
         if (root) renderDashboard(data);
+        if (answerStats) renderAnswers(data);
       })
       .catch(function (err) {
         var msg = err && err.message ? err.message : 'unknown error';

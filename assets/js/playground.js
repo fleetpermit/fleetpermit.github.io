@@ -28,6 +28,10 @@
     var rule = document.getElementById('pg-rule');
     var ruleWrap = document.getElementById('pg-rule-wrap');
     var link = document.getElementById('pg-link');
+    var recBox = document.getElementById('pg-recorded');
+    var recLine = document.getElementById('pg-rec-line');
+    var recDetail = document.getElementById('pg-rec-detail');
+    var recorded = null; /* agent|cluster|tool|lease -> MATRIX evidence row, from data/results.json */
 
     var ICON_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
     var ICON_NO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>';
@@ -131,6 +135,58 @@
       var sc = allowed ? SCENARIO.allow : SCENARIO[failed.key];
       link.href = 'results.html#' + sc.id;
       link.textContent = 'See the matching real scenario, ' + sc.text;
+
+      renderRecorded(s, allowed ? 'ALLOW' : 'DENY');
+    }
+
+    function pillEl(text) {
+      var kind = text === 'ALLOW' ? 'allow' : text === 'DENY' ? 'deny' : 'error';
+      var p = document.createElement('span');
+      p.className = 'pill pill-' + kind;
+      p.textContent = text;
+      return p;
+    }
+
+    function renderRecorded(s, modelSays) {
+      if (!recBox) return;
+      var r = recorded ? recorded[[s.agent, s.cluster, s.tool, s.lease].join('|')] : null;
+      if (!r) { recBox.hidden = true; return; }
+      recBox.hidden = false;
+      recLine.textContent = '';
+      recLine.appendChild(pillEl(r.observed || 'n/a'));
+      var agree = r.observed === modelSays;
+      var note = document.createElement('span');
+      note.textContent = (agree ? 'Same as the policy model.' : 'Differs from the policy model.') +
+        (typeof r.latencyMs === 'number' ? ' ' + r.latencyMs + ' ms' : '') +
+        (r.httpStatus ? ', HTTP ' + r.httpStatus : '') + '.';
+      recLine.appendChild(note);
+      recDetail.textContent = '';
+      recDetail.appendChild(document.createTextNode('Gateway response: '));
+      var code = document.createElement('code');
+      code.textContent = r.detail || 'no detail recorded';
+      recDetail.appendChild(code);
+      recDetail.appendChild(document.createTextNode(' '));
+      var a = document.createElement('a');
+      a.href = 'results.html#matrix';
+      a.textContent = 'Every recorded call in the matrix';
+      recDetail.appendChild(a);
+    }
+
+    if (window.fetch) {
+      fetch('data/results.json', { cache: 'no-cache' })
+        .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+        .then(function (data) {
+          var scen = data && data.e2e && Array.isArray(data.e2e.scenarios) ? data.e2e.scenarios : [];
+          scen.forEach(function (x) {
+            if (!x || x.id !== 'MATRIX' || !Array.isArray(x.evidence)) return;
+            recorded = {};
+            x.evidence.forEach(function (r) {
+              if (r && r.agent && r.cluster && r.tool && r.lease) recorded[[r.agent, r.cluster, r.tool, r.lease].join('|')] = r;
+            });
+          });
+          render();
+        })
+        .catch(function () { /* Without recorded results the playground shows the policy model only. */ });
     }
 
     form.addEventListener('change', render);
