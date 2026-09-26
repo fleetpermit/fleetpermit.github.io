@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0c1728">
 <link rel="icon" href="assets/img/logo-mark.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/img/avatar-512.png">
-<link rel="stylesheet" href="assets/css/site.css?v=c1f22acbdc">
+<link rel="stylesheet" href="assets/css/site.css?v=f3666cfc82">
 <link rel="stylesheet" href="assets/css/flows.css?v=1bc2b12438">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="FleetPermit">
@@ -20,13 +20,13 @@
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){var d=document.documentElement,t='dark';d.className=d.className.replace('no-js','js');try{var s=localStorage.getItem('fp-theme');if(s==='light'||s==='dark')t=s;}catch(e){}d.setAttribute('data-theme',t);})();</script>
 <script src="assets/js/site.js?v=9cbeaed696" defer></script>
-<script src="assets/js/flows.js?v=10e6ed8d24" defer></script>
+<script src="assets/js/flows.js?v=bed63fe48f" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
 <header class="site-header">
   <div class="container header-inner">
-    <a class="brand" href="index.html"><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect width="64" height="64" rx="14" fill="#0C1728"/><g stroke="#2DD4BF" stroke-width="3.2" stroke-linecap="round"><line x1="25" y1="24.5" x2="16.5" y2="16"/><line x1="39" y1="24.5" x2="47.5" y2="16"/></g><line x1="32" y1="41" x2="32" y2="45.5" stroke="#6B7F9C" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="0.01 4.4"/><rect x="8" y="7" width="12" height="12" rx="3" fill="#2DD4BF"/><rect x="44" y="7" width="12" height="12" rx="3" fill="#2DD4BF"/><rect x="27.1" y="47.6" width="9.8" height="9.8" rx="2.6" fill="none" stroke="#6B7F9C" stroke-width="2.2"/><path d="M22 25H42A3 3 0 0 1 45 28V29A3 3 0 0 0 45 35V36A3 3 0 0 1 42 39H22A3 3 0 0 1 19 36V35A3 3 0 0 0 19 29V28A3 3 0 0 1 22 25Z" fill="#F5B544"/><line x1="37" y1="27.6" x2="37" y2="36.6" stroke="#0C1728" stroke-width="1.6" stroke-dasharray="1.6 1.4"/></svg><span>FleetPermit</span><span class="version">v0.1.0</span></a>
+    <a class="brand" href="index.html"><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect width="64" height="64" rx="14" fill="#0C1728"/><g stroke="#2DD4BF" stroke-width="3.2" stroke-linecap="round"><line x1="25" y1="24.5" x2="16.5" y2="16"/><line x1="39" y1="24.5" x2="47.5" y2="16"/></g><line x1="32" y1="41" x2="32" y2="45.5" stroke="#6B7F9C" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="0.01 4.4"/><rect x="8" y="7" width="12" height="12" rx="3" fill="#2DD4BF"/><rect x="44" y="7" width="12" height="12" rx="3" fill="#2DD4BF"/><rect x="27.1" y="47.6" width="9.8" height="9.8" rx="2.6" fill="none" stroke="#6B7F9C" stroke-width="2.2"/><path d="M22 25H42A3 3 0 0 1 45 28V29A3 3 0 0 0 45 35V36A3 3 0 0 1 42 39H22A3 3 0 0 1 19 36V35A3 3 0 0 0 19 29V28A3 3 0 0 1 22 25Z" fill="#F5B544"/><line x1="37" y1="27.6" x2="37" y2="36.6" stroke="#0C1728" stroke-width="1.6" stroke-dasharray="1.6 1.4"/></svg><span>FleetPermit</span><span class="version">v0.1.1</span></a>
     <nav id="site-nav" class="site-nav" aria-label="Main">
       <ul>
         <li><a href="index.html">Overview</a></li>
@@ -114,7 +114,7 @@
         <section id="flow" aria-labelledby="flow-h">
           <h2 id="flow-h">How it works</h2>
           <figure class="figure">
-            <img src="assets/img/policy-flow.svg" width="1200" height="590" alt="From request to enforcement. ToolAccessLease incident-42 asks for restart_workload for 10 minutes. The controller checks WHO: the subject is listed in the policy. WHERE: clusters come from the OCM PlacementDecision and a lease may only narrow them. WHAT: requested tools are a subset of the policy permissions. HOW LONG: the duration is at most maxDuration. When all four pass, it renders one XAccessPolicy per policy and cluster, delivers it with one ManifestWork per selected cluster, and the Envoy gateway enforces identity, tool name and time on every tools/call. A failed WHO, WHAT or HOW LONG check marks the lease Denied, which is terminal.">
+            <img src="assets/img/policy-flow.svg" width="1200" height="590" alt="From request to enforcement. ToolAccessLease incident-42 asks for restart_workload for 10 minutes. The controller checks, in this order, WHO: the subject is listed in the policy. WHAT: requested tools are a subset of the policy permissions. HOW LONG: the duration is at most maxDuration. WHERE: clusters come from the OCM PlacementDecision and a lease may only narrow them. When all four pass, it renders one XAccessPolicy per policy and cluster, delivers it with one ManifestWork per selected cluster, and the Envoy gateway enforces identity, tool name and time on every tools/call. A failed WHO, WHAT or HOW LONG check marks the lease Denied, which is terminal.">
           </figure>
           <ol class="steps">
             <li><div><h3>Define the ceiling</h3><p>The platform team creates a FleetAccessPolicy and an OCM Placement. The policy lists SPIFFE subjects, the Placement, the target (namespace plus XBackend or Gateway), the permitted MCP tools and the lease limits. <code>failMode</code> is <code>Closed</code>.</p></div></li>
@@ -131,7 +131,8 @@
           <h2 id="flows-h">Every flow, animated</h2>
           <div class="prose">
             <p>The end-to-end suite makes real MCP calls through the Envoy gateways of a local lab. The lab has one hub and three managed clusters. The Placement selects cluster-east and cluster-west (<code>env=production</code>). cluster-edge is not selected. The caller is <code>sre-agent</code>, which the policy lists, or <code>security-agent</code>, which it does not.</p>
-            <p>Each tab replays one group of scenarios in the order the test script runs them. The result and timing under each scene come from the latest run, read from the same file as the <a href="results.html">results page</a>.</p>
+            <p>Each tab covers one flow and can combine scenarios that run at different points in the test script. Under each scene are the scenario results from the latest end-to-end run and the lab timings for that flow. Each timing is a median across the benchmark runs and the end-to-end run, and names its source. Both come from the same file as the <a href="results.html">results page</a>.</p>
+            <p>The lab tests use their own policy, set by <code>apply_policy</code> in <a href="https://github.com/fleetpermit/fleetpermit/blob/main/test/e2e/lib.sh">test/e2e/lib.sh</a>, with <code>maxDuration: 10m</code> and <code>defaultDuration: 2m</code>. The example policy elsewhere on this site is the repository sample, with <code>maxDuration: 30m</code> and <code>defaultDuration: 15m</code>.</p>
           </div>
           <ul class="fl-legend" aria-label="How to read the scenes">
             <li><span class="fl-sw ticket" aria-hidden="true"></span>A lease, or a ManifestWork on its way to a cluster</li>
@@ -166,7 +167,7 @@
 
             <div class="fl-panel" id="flow-denied" data-flow="denied" data-tab="Wrong tool or identity" data-ids="S2 S3 S4 S8 S9">
               <h3>Wrong tool or wrong identity</h3>
-              <p class="fl-lede">Five ways to ask for more than the policy and the lease allow. Each one is refused.</p>
+              <p class="fl-lede">Six ways to ask for more than the policy or the lease allows. Each one is refused.</p>
               <ol class="fl-steps">
                 <li><span class="fl-step"><span>Before any lease exists, <code>sre-agent</code> calls <code>restart_workload</code> on cluster-east. DENY: the policy alone grants nothing (S4).</span></span></li>
                 <li><span class="fl-step"><span>With a lease for <code>restart_workload</code> and <code>get_cluster_health</code> active, <code>sre-agent</code> calls <code>read_secret</code>. DENY: the policy does not permit that tool (S2).</span></span></li>
@@ -218,7 +219,7 @@
                 <li><span class="fl-step"><span>The test waits until just before the shorter lease expires, then keeps calling <code>get_cluster_health</code>.</span></span></li>
                 <li><span class="fl-step"><span>Once <code>request.time</code> passes the expiry, the rule no longer matches and Envoy answers DENY. The test times the gap from <code>expiresAt</code> to the first DENY.</span></span></li>
                 <li><span class="fl-step"><span><code>restart_workload</code> still gets ALLOW, because its own lease has not expired (S13).</span></span></li>
-                <li><span class="fl-step"><span>The controller then marks the lease Expired and removes its rule. That clean-up is checked in S12.</span></span></li>
+                <li><span class="fl-step"><span>The controller then marks the lease Expired and removes its rule. S5 does not check this step. The hub-disconnected flow shows it for another lease.</span></span></li>
               </ol>
               <div class="fl-facts">
                 <div class="fl-box fl-tested">
@@ -281,7 +282,7 @@
               <ol class="fl-steps">
                 <li><span class="fl-step"><span>cluster-west holds a rendered XAccessPolicy with an active grant for <code>restart_workload</code>.</span></span></li>
                 <li><span class="fl-step"><span>The test deletes that XAccessPolicy directly on cluster-west, without going through the hub.</span></span></li>
-                <li><span class="fl-step"><span>Once the gateway is updated, the call gets DENY. Only the default-deny anchor is left, so the backend stays closed.</span></span></li>
+                <li><span class="fl-step"><span>Two seconds later the test expects DENY, unless the policy is already back. While only the default-deny anchor is left, the backend stays closed.</span></span></li>
                 <li><span class="fl-step"><span>At its next status sync, OCM reports the object missing. FleetPermit then asks the work agent to re-apply it at once.</span></span></li>
                 <li><span class="fl-step"><span>The policy is back and the call gets ALLOW again. The test times this from the delete.</span></span></li>
               </ol>
@@ -292,7 +293,7 @@
                     <li data-id="S10"><a class="fl-id" href="results.html#S10">S10</a></li>
                   </ul>
                 </div>
-                <div class="fl-box fl-metrics" data-keys="driftRecoveryMs" hidden></div>
+                <div class="fl-box fl-metrics" data-keys="driftRecoveryToAllowMs" data-extra="driftRecoveryMs" data-extra-label="Object restored" hidden></div>
               </div>
             </div>
 
@@ -302,7 +303,7 @@
               <ol class="fl-steps">
                 <li><span class="fl-step"><span>cluster-edge is not selected, so FleetPermit sends it nothing. The only XAccessPolicy on its backend is the default-deny anchor, whose rule never matches.</span></span></li>
                 <li><span class="fl-step"><span>The test deletes the anchor. Now no XAccessPolicy targets the backend.</span></span></li>
-                <li><span class="fl-step"><span><code>sre-agent</code> calls <code>read_secret</code> on cluster-edge. Upstream enforces nothing on a backend without a policy, so the call gets ALLOW.</span></span></li>
+                <li><span class="fl-step"><span><code>sre-agent</code> calls <code>read_secret</code> on cluster-edge. Upstream enforces nothing on a backend without a policy, and the lab observed ALLOW. The test records this call but does not require it.</span></span></li>
                 <li><span class="fl-step"><span>The test puts the anchor back. The same call gets DENY.</span></span></li>
               </ol>
               <div class="fl-facts">
@@ -358,7 +359,7 @@
             <p>Envoy compiles it into an RBAC condition and stops honouring the grant at the expiry instant, using the managed cluster's clock. Nothing on the hub needs to be reachable. The controller removes expired grants afterwards as cleanup; enforcement has already happened in the gateway.</p>
           </div>
           <figure class="figure">
-            <img src="assets/img/disconnect-behavior.svg" width="1200" height="560" alt="Expiry with the hub unreachable, in three stages. First, the hub is connected, lease incident-42 is Active, the grant is present on cluster-east and restart_workload is allowed. Second, the hub is unreachable at expiry; the grant is still present, but request.time is past 10:15:00Z so the rule is false and the call is denied. Third, the hub reconnects, marks the lease Expired and withdraws the grant; the grant is removed, the default-deny anchor remains and the call stays denied.">
+            <img src="assets/img/disconnect-behavior.svg" width="1200" height="560" alt="Expiry with the hub unreachable, in three stages. First, the hub is connected, lease incident-42 is Active, the grant is present on cluster-east and restart_workload is allowed. Second, the hub is unreachable at expiry; the grant is still present, but request.time is past 10:15:00Z so the rule is false and the call is denied. Third, the hub reconnects, marks the lease Expired and withdraws the grant; the grant is removed, FleetPermit's policy with no active grants and the default-deny anchor remain on cluster-east, and the call stays denied.">
             <figcaption>Scenario <a href="results.html#S11">S11</a> pauses the whole hub node before a lease expires; <a href="results.html#S12">S12</a> checks the clean-up after reconnection.</figcaption>
           </figure>
         </section>
@@ -375,9 +376,13 @@
   <span class="tok-k">namespace</span>: mcp-tools
   <span class="tok-k">labels</span>:
     <span class="tok-k">app.kubernetes.io/managed-by</span>: fleetpermit
+    <span class="tok-k">fleetpermit.github.io/policy-uid</span>: 3b9f6a2e-...
   <span class="tok-k">annotations</span>:
     <span class="tok-k">fleetpermit.github.io/policy</span>: fleet/sre-remediation
+    <span class="tok-k">fleetpermit.github.io/policy-uid</span>: 3b9f6a2e-...
+    <span class="tok-k">fleetpermit.github.io/policy-generation</span>: <span class="tok-s">"1"</span>
     <span class="tok-k">fleetpermit.github.io/cluster</span>: cluster-east
+    <span class="tok-k">fleetpermit.github.io/lease-uids</span>: 7c41d2e9-...
     <span class="tok-k">fleetpermit.github.io/expires-at</span>: <span class="tok-s">"2026-09-26T10:15:00Z"</span>
     <span class="tok-k">fleetpermit.github.io/content-digest</span>: sha256:8a5e41c4...
 <span class="tok-k">spec</span>:
@@ -456,7 +461,7 @@
   <div class="container footer-grid">
     <div>
       <p><strong>FleetPermit is an independent open-source project.</strong> Built on open technologies from the Kubernetes, CNCF and Linux Foundation ecosystems.</p>
-      <p>Licensed under Apache-2.0. Version v0.1.0 is a pre-release.</p>
+      <p>Licensed under Apache-2.0. Version v0.1.1 is a pre-release.</p>
     </div>
     <ul class="footer-links" aria-label="Project links">
       <li><a href="https://github.com/fleetpermit/fleetpermit">GitHub repository</a></li>

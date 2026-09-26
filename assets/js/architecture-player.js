@@ -13,11 +13,11 @@
   var STEPS = [
     { d: 2200, text: 'The agent sre-agent has a SPIFFE identity issued by Kubernetes Pod Certificates.' },
     { d: 2600, text: 'An on-call engineer creates ToolAccessLease incident-42: restart_workload for 10 minutes.' },
-    { d: 3800, text: 'FleetPermit checks WHO, WHERE, WHAT and HOW LONG against the policy. All four pass.' },
-    { d: 2600, text: 'The OCM Placement selects env=production: cluster-east and cluster-west, not cluster-edge.' },
+    { d: 3400, text: 'FleetPermit checks WHO, WHAT and HOW LONG against the policy. All three pass.' },
+    { d: 3000, text: 'Then WHERE: the OCM Placement selects env=production, cluster-east and cluster-west, not cluster-edge.' },
     { d: 3000, text: 'FleetPermit renders an XAccessPolicy with a CEL time bound and delivers it with ManifestWork.' },
     { d: 2600, text: 'sre-agent calls restart_workload on cluster-east through the gateway. ALLOW.' },
-    { d: 3800, text: 'cluster-edge has no grant: DENY. read_secret is not in the lease: DENY.' },
+    { d: 3800, text: 'cluster-edge has no grant: DENY. The policy does not permit read_secret: DENY.' },
     { d: 3200, text: 'Ten minutes pass, sped up. The lease reaches its expiry time, 10:15:00Z.' },
     { d: 3200, text: 'The same call is now denied by Envoy itself: request.time is past the expiry.' },
     { d: 2800, text: 'FleetPermit marks the lease Expired and withdraws the grant.' }
@@ -115,27 +115,27 @@
     show(el['tok-lease'], i === 1 && lp < 0.85);
     place(el['tok-lease'], 236, 108, 380, 150, seg(lp, 0.1, 0.75));
 
-    // Checks.
+    // Checks, in the order the controller runs them: WHO, WHAT, HOW LONG, then WHERE.
     var cp = prog(2);
-    var qs = [['q-who', 0.06], ['q-where', 0.3], ['q-what', 0.54], ['q-howlong', 0.78]];
+    var sel = prog(3) > 0.35;
+    var qs = [['q-who', 0.08], ['q-what', 0.4], ['q-howlong', 0.72]];
     qs.forEach(function (q) { attr(el[q[0]], 'class', cp >= q[1] ? 'q-on' : ''); });
+    attr(el['q-where'], 'class', sel ? 'q-on' : '');
     var detail = 'Waiting for a lease';
     if (i === 1) detail = lp > 0.75 ? 'Evaluating incident-42' : '';
     if (i === 2) {
       detail = 'Evaluating incident-42';
-      if (cp >= 0.06) detail = 'WHO: sre-agent is a subject of the policy';
-      if (cp >= 0.3) detail = 'WHERE: clusters come from the OCM Placement';
-      if (cp >= 0.54) detail = 'WHAT: restart_workload is a permitted tool';
-      if (cp >= 0.78) detail = 'HOW LONG: 10m is within the 1h maximum';
+      if (cp >= 0.08) detail = 'WHO: sre-agent is a subject of the policy';
+      if (cp >= 0.4) detail = 'WHAT: restart_workload is a permitted tool';
+      if (cp >= 0.72) detail = 'HOW LONG: 10m is within the 30m maximum';
     }
-    if (i === 3) detail = 'All four checks passed';
+    if (i === 3) detail = sel ? 'WHERE: east and west are selected' : 'WHERE: reading the OCM PlacementDecision';
     if (i >= 4 && i <= 7) detail = 'Rendered one XAccessPolicy per selected cluster';
-    if (i === 8) detail = 'Lease expired at 10:15:00Z';
-    if (i === 9) detail = prog(9) > 0.35 ? 'Grant withdrawn from east and west' : 'Lease expired at 10:15:00Z';
+    if (i === 8) detail = 'The rules no longer match after 10:15:00Z';
+    if (i === 9) detail = prog(9) > 0.35 ? 'Lease Expired, grant withdrawn' : 'Marking the lease Expired';
     text(el['check-detail'], detail);
 
     // Placement.
-    var sel = prog(3) > 0.35;
     show(el['ocm-result'], sel);
     cls(el['cl-east'], 'cl', sel ? 'sel' : '');
     cls(el['cl-west'], 'cl', sel ? 'sel' : '');
@@ -154,7 +154,8 @@
     place(el['tok-east'], 440, 250, 170, 320, seg(dp, 0.05, 0.7));
     place(el['tok-west'], 500, 250, 500, 320, seg(dp, 0.05, 0.7));
     var delivered = dp >= 0.72;
-    var expired = i >= 8 && prog(8) > 0.2;
+    var expired = i >= 8 && prog(8) > 0.2;          // the rule's time bound has passed
+    var leaseExpired = i >= 9 && prog(9) > 0.15;    // FleetPermit has marked the lease Expired
     var gstate = !delivered || withdrawn ? 'none' : expired ? 'expired' : 'active';
     grant('east', gstate);
     grant('west', gstate);
@@ -162,9 +163,9 @@
     // Lease status.
     var status = 'Status: Pending';
     if (delivered) status = 'Status: Active';
-    if (expired) status = 'Status: Expired';
+    if (leaseExpired) status = 'Status: Expired';
     text(el['lease-status'], status);
-    var statusColor = expired ? '#FF9A9A' : delivered ? '#2DD4BF' : '#A9B8CD';
+    var statusColor = leaseExpired ? '#FF9A9A' : delivered ? '#2DD4BF' : '#A9B8CD';
     if (el['lease-status'].style.fill !== statusColor) el['lease-status'].style.fill = statusColor;
 
     // Timer.
@@ -244,10 +245,47 @@
     return { i: 0, p: 0 };
   }
 
+  /* On narrow screens the scene keeps a readable size and scrolls sideways inside the
+   * stage (CSS). While it plays, or after a step is chosen, the view follows the part of
+   * the diagram the step is about, unless the visitor scrolled it in the last few seconds. */
+  var stage = player.querySelector('.player-stage');
+  var FOCUS = [500, 145, 500, 500, 335, 170, 760, 145, 170, 335];
+  var lastUser = 0;
+  var lastFocus = -1;
+  var followOn = false;
+  function scrollable() { return !!stage && stage.scrollWidth > stage.clientWidth + 4; }
+  function follow(x) {
+    if (!followOn || !scrollable() || Date.now() - lastUser < 6000) return;
+    var scale = svg.getBoundingClientRect().width / 1000;
+    var left = Math.max(0, x * scale - stage.clientWidth / 2);
+    if (stage.scrollTo) stage.scrollTo({ left: left, behavior: reduced ? 'auto' : 'smooth' });
+    else stage.scrollLeft = left;
+  }
+  function syncScrollRegion() {
+    if (!stage) return;
+    if (scrollable()) {
+      stage.setAttribute('tabindex', '0');
+      stage.setAttribute('role', 'region');
+      stage.setAttribute('aria-label', 'Diagram, scrolls sideways');
+    } else {
+      stage.removeAttribute('tabindex');
+      stage.removeAttribute('role');
+      stage.removeAttribute('aria-label');
+    }
+  }
+  if (stage) {
+    ['pointerdown', 'wheel', 'touchstart', 'keydown'].forEach(function (ev) {
+      stage.addEventListener(ev, function () { lastUser = Date.now(); }, { passive: true });
+    });
+    window.addEventListener('resize', syncScrollRegion);
+  }
+
   function paint() {
     var at = locate(Math.min(t, TOTAL - 1));
     if (t >= TOTAL) at = { i: STEPS.length - 1, p: 1 };
     render(at.i, at.p);
+    var focus = at.i === 6 && at.p >= 0.46 ? 170 : FOCUS[at.i];
+    if (focus !== lastFocus) { lastFocus = focus; follow(focus); }
     if (at.i !== currentStep) {
       currentStep = at.i;
       text(counter, 'Step ' + (at.i + 1) + ' of ' + STEPS.length);
@@ -289,7 +327,7 @@
     paint();
     raf = window.requestAnimationFrame(frame);
   }
-  function start() { if (raf) return; last = 0; raf = window.requestAnimationFrame(frame); }
+  function start() { if (raf) return; followOn = true; lastFocus = -1; last = 0; raf = window.requestAnimationFrame(frame); }
   function stop() { if (raf) window.cancelAnimationFrame(raf); raf = 0; }
   function update() {
     if (playing && visible && !document.hidden && !reduced) start(); else stop();
@@ -311,12 +349,15 @@
   }
 
   toggle.addEventListener('click', function () {
+    followOn = true;
     if (t >= TOTAL) t = 0;
     playing = !playing;
     syncControls();
     update();
   });
   replay.addEventListener('click', function () {
+    followOn = true;
+    lastFocus = -1;
     t = 0;
     playing = true;
     currentStep = -1;
@@ -327,6 +368,8 @@
   stepBtns.forEach(function (b) {
     b.addEventListener('click', function () {
       var k = parseInt(b.getAttribute('data-step'), 10);
+      followOn = true;
+      lastFocus = -1;
       captionBox.setAttribute('aria-live', 'polite');
       if (reduced || !playing) {
         t = starts[k] + STEPS[k].d - 1;
@@ -359,5 +402,6 @@
   applyMotionMode();
   paint();
   syncControls();
+  syncScrollRegion();
   update();
 })();

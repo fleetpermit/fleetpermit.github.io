@@ -222,7 +222,7 @@
       kind: 'subject',
       one: 'A test client pod whose identity is listed in the policy, so it can hold leases.',
       expected: 'ALLOW only on cluster-east and cluster-west, only for the leased tools (get_cluster_health and restart_workload), and only while the lease is active. DENY for scale_workload (the policy permits it, but the lease does not), read_secret (not permitted), anything on cluster-edge (outside the placement), and every call after the lease expires.',
-      links: [['Test client (probe)', BLOB + 'demo/tools/probe/main.go'], ['How the agent pods are deployed', BLOB + 'demo/scripts/render-agents.sh'], ['The policy that lists it', BLOB + 'config/samples/fleetaccesspolicy.yaml']]
+      links: [['Test client (probe)', BLOB + 'demo/tools/probe/main.go'], ['How the agent pods are deployed', BLOB + 'demo/scripts/render-agents.sh'], ['The lab policy that lists it (apply_policy)', BLOB + 'test/e2e/lib.sh']]
     },
     'security-agent': {
       kind: 'unlisted',
@@ -289,7 +289,7 @@
     var wrap = h('div', { class: 'test-agents' });
     wrap.appendChild(h('div', { class: 'agents-intro' }, [
       h('p', { class: 'lead', text: 'Both are test clients from this repository, not third-party or AI agents.' }),
-      h('p', { text: 'They are two ordinary pods in namespace agents on cluster-east. Both run the same small test client, the probe. Each run makes one MCP call (initialize, then tools/call) over mTLS to one cluster’s gateway and records the answer. The only difference between them is their identity.' }),
+      h('p', { text: 'They are two ordinary pods in namespace agents on cluster-east. Both run the same small test client, the probe. Each run opens an MCP session over mTLS with one cluster’s gateway (initialize, then notifications/initialized), makes one tools/call and records the answer. The only difference between them is their identity.' }),
       h('p', { class: 'small' }, [h('a', { href: BLOB + 'demo/tools/mcp-server/main.go', text: 'The MCP tool server they call' }), '. ',
         h('a', { href: BLOB + 'test/e2e/run.sh', text: 'The scenarios that drive them' }), '. Identity background: ',
         h('a', { href: 'https://github.com/kubernetes/enhancements/tree/master/keps/sig-auth/4317-pod-certificates', text: 'Kubernetes Pod Certificates' }), ' and ',
@@ -424,7 +424,7 @@
     if (ta) preview.appendChild(h('div', { class: 'lab-agents' }, [h('h3', { text: 'Meet the test agents' }), ta]));
     if (e2e.summary) preview.appendChild(statRow(e2e.summary));
     var lat = data.latency || {};
-    var keys = Object.keys(lat).slice(0, 3);
+    var keys = ['activationToAllowMs', 'revocationToDenyMs', 'expiryToDenyHubDownMs'].filter(function (k) { return lat[k] && typeof lat[k] === 'object'; });
     if (keys.length) {
       var list = h('ul', { class: 'limits' }, keys.map(function (k) {
         var m = lat[k] || {};

@@ -499,6 +499,15 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 2.5rem 0; }
 }
 
 .player-static-note { padding: 12px clamp(14px, 2vw, 24px); margin: 0; color: #a9b8cd; font-size: var(--step--1); border-top: 1px solid #22344f; }
+.player-swipe { display: none; margin: 0; padding: 0 16px 10px; color: #a9b8cd; font-size: var(--step--1); }
+/* Narrow screens: keep the scene at a readable size (text at least about 10 px) and let it
+ * scroll sideways inside the plate; the player script follows the current step. */
+@media (max-width: 880px) {
+  .player-stage { overflow-x: auto; overscroll-behavior-x: contain; padding: 8px 0 4px; scrollbar-width: thin; }
+  .player-stage svg { width: 820px; max-width: none; }
+  .player-stage .scene text[font-size="11.5"], .player-stage .scene text[font-size="12"] { font-size: 12.5px; }
+  .player-swipe { display: block; }
+}
 
 .player :not(pre) > code { background: #1b3050; border-color: #2e4468; color: #e6edf6; }
 

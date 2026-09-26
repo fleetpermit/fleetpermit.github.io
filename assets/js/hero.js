@@ -169,7 +169,13 @@
     li.appendChild(el('span', 't-tool', r.tool));
     var kind = r.decision === 'ALLOW' ? 'allow' : r.decision === 'DENY' ? 'deny' : 'error';
     li.appendChild(el('span', 'pill pill-' + kind, r.decision));
-    li.appendChild(el('span', 't-ms', typeof r.ms === 'number' && isFinite(r.ms) ? r.ms + ' ms' : ''));
+    var ms = el('span', 't-ms');
+    if (typeof r.ms === 'number' && isFinite(r.ms)) {
+      ms.title = 'Probe round trip for this call';
+      ms.appendChild(el('span', 'visually-hidden', 'probe round trip '));
+      ms.appendChild(document.createTextNode(r.ms + ' ms'));
+    }
+    li.appendChild(ms);
     li.appendChild(el('span', 't-src', r.agent ? r.src : ''));
     return li;
   }
@@ -203,7 +209,15 @@
     if (!el2 || !sm || !num(sm.passed) || !num(sm.total)) return;
     var env = data.e2e.environment;
     var commit = env && typeof env.fleetpermitCommit === 'string' ? env.fleetpermitCommit : '';
-    el2.textContent = sm.passed + '/' + sm.total + ' lab scenarios passed' + (commit ? ' · commit ' + commit : '');
+    /* A full line for wide screens and a short one for phones; every number comes from the file. */
+    var long = [sm.passed + ' of ' + sm.total + ' lab scenarios passed'];
+    var short = [sm.passed + '/' + sm.total + ' passed'];
+    if (num(sm.failed)) { long.push(sm.failed + ' failed'); short.push(sm.failed + ' failed'); }
+    if (num(sm.unsupported)) { long.push(sm.unsupported + ' unsupported upstream'); short.push(sm.unsupported + ' unsupported'); }
+    if (commit) long.push('commit ' + commit);
+    el2.textContent = '';
+    el2.appendChild(el('span', 'pill-long', long.join(' · ')));
+    el2.appendChild(el('span', 'pill-short', short.join(' · ')));
   }
   function renderNumbers(data) {
     var ul = document.getElementById('fx-numbers');
@@ -254,7 +268,7 @@
           var a = el('a', null, 'data/results.json');
           a.href = 'data/results.json';
           sub.appendChild(a);
-          sub.appendChild(document.createTextNode('. Not a live feed.'));
+          sub.appendChild(document.createTextNode('. Not a live feed. The time on each row is the probe\u2019s round trip for that call.'));
         }
         if (win) win.setAttribute('tabindex', '0');
         sync();

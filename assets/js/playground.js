@@ -3,7 +3,9 @@
 (function () {
   'use strict';
 
-  /* ---------- Policy playground ---------- */
+  /* ---------- Policy playground ----------
+   * Models the gateway's decision for one call under one active lease, with the checks in
+   * the controller's order: WHO, WHAT, HOW LONG, WHERE. It does not model lease admission. */
   var form = document.getElementById('pg-form');
   if (form) {
     var MODEL = {
@@ -52,26 +54,26 @@
           note: 'spiffe://cluster.local/ns/agents/sa/' + s.agent
         },
         {
-          key: 'where', q: 'WHERE?',
-          ok: MODEL.selected.indexOf(s.cluster) !== -1,
-          pass: s.cluster + ' is selected by the Placement (env=production).',
-          fail: s.cluster + ' is env=staging, so the Placement does not select it. It never receives a grant, and its default-deny anchor denies every call.',
-          note: ''
-        },
-        {
           key: 'what', q: 'WHAT?',
           ok: MODEL.leaseTools.indexOf(s.tool) !== -1,
-          pass: s.tool + ' is granted by the lease.',
+          pass: s.tool + ' is granted by the active lease.',
           fail: MODEL.permissions.indexOf(s.tool) === -1
             ? s.tool + ' is not in the policy permissions, so no lease can grant it. The rendered rule does not list it.'
-            : s.tool + ' is permitted by the policy but not granted by this lease.',
+            : s.tool + ' is permitted by the policy but not granted by the active lease.',
           note: ''
         },
         {
           key: 'howlong', q: 'HOW LONG?',
           ok: s.lease === 'active',
-          pass: 'The lease is active until ' + MODEL.expiresAt + '.',
+          pass: 'The lease has not expired: request.time is before ' + MODEL.expiresAt + '.',
           fail: 'The lease expired at ' + MODEL.expiresAt + '. The CEL rule compares request.time with that timestamp, so Envoy denies.',
+          note: ''
+        },
+        {
+          key: 'where', q: 'WHERE?',
+          ok: MODEL.selected.indexOf(s.cluster) !== -1,
+          pass: s.cluster + ' is selected by the Placement (env=production).',
+          fail: s.cluster + ' is env=staging, so the Placement does not select it. It never receives a grant, and its default-deny anchor denies every call.',
           note: ''
         }
       ];
@@ -227,12 +229,14 @@
       p1.textContent = 'This recording is not available here.';
       var p2 = document.createElement('p');
       p2.style.margin = '0';
-      p2.appendChild(document.createTextNode('Run the same demo locally with '));
+      var src0 = video.getAttribute('src') || '';
+      var mode = /security/.test(src0) ? 'security' : /disconnect/.test(src0) ? 'disconnect' : 'overview';
+      p2.appendChild(document.createTextNode('Run the same demo on the lab with '));
       var a = document.createElement('a');
       a.href = RUN_SH;
-      a.textContent = 'demo/run.sh';
+      a.textContent = 'demo/run.sh ' + mode;
       p2.appendChild(a);
-      p2.appendChild(document.createTextNode(' (make demo-run).'));
+      p2.appendChild(document.createTextNode(mode === 'overview' ? ' (make demo-run runs this one).' : '.'));
       box.appendChild(p1);
       box.appendChild(p2);
       if (video.getAttribute('aria-describedby')) box.setAttribute('aria-describedby', video.getAttribute('aria-describedby'));

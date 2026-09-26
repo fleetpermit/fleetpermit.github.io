@@ -258,3 +258,7 @@
   .ticker-list li .t-src { display: none; }
 }
 
+
+/* Status pill: full line on wide screens, short line on phones. */
+.fx-pill .pill-short { display: none; }
+@media (max-width: 560px) { .fx-pill .pill-long { display: none; } .fx-pill .pill-short { display: inline; } }

@@ -372,6 +372,7 @@
           if (sendAt(st, k, 'grant', q[5], 0.35 + n * 0.03, 0.78 + n * 0.03)) grantOn(st, k, '1 grant');
         });
         status(st, active ? 'Two leases Active' : q[0] > 0.3 ? 'Two new leases' : '', active ? 'teal' : 'dim');
+        if (past) status(st, 'One lease past its expiry, one Active', 'amber');
         if (i === 5) { st.hub.hot = true; if (expired) status(st, 'Lease Expired, its rule removed', 'coral'); }
         callAt(st, W, 'get_cluster_health', 'allow', q[1], 0.05, 0.4);
         callAt(st, W, 'restart_workload', 'allow', q[1], 0.5, 0.85);
@@ -428,10 +429,11 @@
         var moved = q[2] > 0.12 && !(i === 4 && p > 0.35);
         if (moved) { st.cl[W].placed = false; st.cl[X].placed = true; }
         [E, W].forEach(function (k, n) { if (sendAt(st, k, 'grant', q[0], 0.15 + n * 0.03, 0.42 + n * 0.03)) grantOn(st, k); });
-        if (sendAt(st, W, 'withdraw', q[2], 0.25, 0.7)) grantOff(st, W);
+        /* A cluster that leaves the Placement loses its ManifestWork, so only the anchor stays. */
+        if (sendAt(st, W, 'withdraw', q[2], 0.25, 0.7)) { grantOff(st, W); slot(st, W, 'anchor only', 'dim'); }
         if (sendAt(st, X, 'grant', q[2], 0.28, 0.73)) grantOn(st, X);
         if (sendAt(st, W, 'grant', q[4], 0.45, 0.85)) grantOn(st, W);
-        if (sendAt(st, X, 'withdraw', q[4], 0.48, 0.88)) grantOff(st, X);
+        if (sendAt(st, X, 'withdraw', q[4], 0.48, 0.88)) { grantOff(st, X); slot(st, X, 'anchor only', 'dim'); }
         callAt(st, W, 'restart_workload', 'allow', q[0], 0.5, 0.82);
         callAt(st, X, 'restart_workload', 'deny', q[0], 0.55, 0.87);
         callAt(st, W, 'restart_workload', 'deny', q[3], 0.05, 0.45);
@@ -460,7 +462,7 @@
         callAt(st, W, 'restart_workload', 'deny', q[2], 0.15, 0.55);
         if (i === 3 && q[3] >= 0.92) idle(st, W);
         callAt(st, W, 'restart_workload', 'allow', q[4], 0.1, 0.5);
-        if (q[4] > 0.55) measure(st, 'driftRecoveryMs', 'delete → ALLOW again');
+        if (q[4] > 0.55) measure(st, 'driftRecoveryToAllowMs', 'delete → ALLOW again');
       }
     },
 
@@ -904,6 +906,22 @@
       m.source ? h('p', { 'class': 'fl-ms', text: 'Source: ' + m.source }) : null
     ]);
   }
+  /* A second, related measurement shown as one compact line (for example the benchmark's own key). */
+  function extraLine(key, m, label) {
+    if (!m || typeof m !== 'object' || !isNum(m.p50)) return null;
+    var unit = m.unit || 'ms';
+    var n = Array.isArray(m.samples) ? m.samples.filter(isNum).length : 0;
+    return h('div', { 'class': 'fl-m' }, [
+      h('p', { 'class': 'fl-ml' }, [h('a', { href: 'results.html#lat-' + key, text: label || m.label || key })]),
+      h('p', { 'class': 'fl-mx' }, [
+        h('span', null, ['median ', h('b', { text: fmt(m.p50, unit) })]),
+        isNum(m.p95) ? h('span', null, ['p95 ', h('b', { text: fmt(m.p95, unit) })]) : null,
+        n ? h('span', null, [h('b', { text: String(n) }), n === 1 ? ' sample' : ' samples']) : null
+      ]),
+      h('p', { 'class': 'fl-ms', text: (m.label ? m.label + '. ' : '') + (m.source ? 'Source: ' + m.source : '') })
+    ]);
+  }
+
   function fill(d) {
     var byId = {};
     var list = d.e2e && Array.isArray(d.e2e.scenarios) ? d.e2e.scenarios : [];
@@ -923,6 +941,9 @@
       if (!box || box.__flFilled) return;
       var blocks = (box.getAttribute('data-keys') || '').split(/\s+/).filter(Boolean)
         .map(function (key) { return metricBlock(key, lat[key]); }).filter(Boolean);
+      var extraKey = box.getAttribute('data-extra');
+      var extra = extraKey ? extraLine(extraKey, lat[extraKey], box.getAttribute('data-extra-label')) : null;
+      if (extra) blocks.push(extra);
       if (!blocks.length) return;
       box.__flFilled = true;
       box.textContent = '';
