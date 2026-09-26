@@ -20,7 +20,7 @@
 <script>(function(){var d=document.documentElement,t='dark';d.className=d.className.replace('no-js','js');try{var s=localStorage.getItem('fp-theme');if(s==='light'||s==='dark')t=s;}catch(e){}d.setAttribute('data-theme',t);})();</script>
 <script src="assets/js/site.js?v=9cbeaed696" defer></script>
 <link rel="stylesheet" href="assets/css/agents.css?v=9dca5593b2">
-<script src="assets/js/results.js?v=fb60a4e2bf" defer></script>
+<script src="assets/js/results.js?v=2a0485dc6f" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -50,7 +50,7 @@
   <div class="container">
     <header class="page-head">
       <h1>Test results</h1>
-      <p class="lede">What the end-to-end suite observed on a real multi-cluster lab, with the raw evidence for every decision. Local kind clusters on one development host — not a production benchmark.</p>
+      <p class="lede">What the end-to-end suite observed on a real multi-cluster lab, with the raw evidence for every decision. The lab is local kind clusters on one development host, so these numbers are not a production benchmark.</p>
       <nav aria-label="On this page">
         <ul class="footer-links">
           <li><a href="#matrix">Test agents and outcomes</a></li>
@@ -72,7 +72,7 @@
     <section aria-labelledby="how-read" style="padding-bottom:72px;border-top:1px solid var(--line);padding-top:40px">
       <h2 id="how-read">How to read these results</h2>
       <div class="prose">
-        <p><strong>Pass</strong> means the observed outcome matched the expected one. <strong>Unsupported upstream</strong> means the scenario asks for something the pinned upstream release cannot enforce yet; it is recorded, not hidden. For example, argument-level matching such as refusing <code>replicas=1000</code> is not supported by kube-agentic-networking v0.2.0.</p>
+        <p><strong>Pass</strong> means the observed outcome matched the expected one. <strong>Unsupported upstream</strong> means the scenario asks for something the pinned upstream release cannot enforce yet; the result is still recorded. For example, argument-level matching such as refusing <code>replicas=1000</code> is not supported by kube-agentic-networking v0.2.0.</p>
         <p>Scenario IDs are stable. The <a href="demo.html#playground">policy playground</a> links to the scenario that exercises each rule, for example <a href="#S3">S3</a> for a wrong identity and <a href="#S5">S5</a> for expiry.</p>
         <p>Reproduce the numbers with <code>make demo-up</code>, <code>make test-e2e</code> and <code>make benchmark</code>. The simulated scale rows come from envtest and a simulated OCM work agent. They measure the controller, not managed clusters.</p>
       </div>

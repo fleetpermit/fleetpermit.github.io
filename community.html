@@ -71,7 +71,7 @@
               <li>Open an issue first for API changes, security-model changes or new dependencies.</li>
               <li>New direct dependencies must come from the Kubernetes, CNCF or Linux Foundation ecosystems and be recorded in <a href="https://github.com/fleetpermit/fleetpermit/blob/main/DEPENDENCIES.md">DEPENDENCIES.md</a>.</li>
               <li>Add tests at the lowest layer that proves the behaviour: unit tests for pure logic, <code>test/integration</code> for anything involving the API server, and a scenario in <code>test/e2e/run.sh</code> for anything that needs real gateways or OCM.</li>
-              <li>Keep claims honest: documentation that states a behaviour or a number points to a test or a measurement.</li>
+              <li>Documentation that states a behaviour or a number points to a test or a measurement.</li>
             </ul>
           </div>
           <div class="code-block" data-commands-only>
@@ -88,12 +88,12 @@
           <div class="prose">
             <p>FleetPermit is an independent open-source project. It is not part of, or endorsed by, the CNCF, the Linux Foundation or the Kubernetes project, although it builds on their technologies.</p>
             <ul>
-              <li><strong>Contributors</strong> open issues, review and submit pull requests.</li>
-              <li><strong>Maintainers</strong> review and merge changes, triage issues, cut releases and handle security reports.</li>
-              <li><strong>Decisions</strong> happen in pull requests by lazy consensus. Changes to the API, the security model or the dependency policy need an issue or design document first and approval from a majority of maintainers.</li>
-              <li><strong>New maintainers</strong> are nominated by a maintainer after sustained contributions and approved by a majority. The project aims for maintainers from more than one organisation as it grows.</li>
+              <li>Contributors open issues, review and submit pull requests.</li>
+              <li>Maintainers review and merge changes, triage issues, cut releases and handle security reports.</li>
+              <li>Decisions happen in pull requests by lazy consensus. Changes to the API, the security model or the dependency policy need an issue or design document first and approval from a majority of maintainers.</li>
+              <li>New maintainers are nominated by a maintainer after sustained contributions and approved by a majority. The project aims for maintainers from more than one organisation as it grows.</li>
             </ul>
-            <p>Three principles every change must respect: vendor neutrality, fail closed, and claims backed by tests or measurements. Read the full <a href="https://github.com/fleetpermit/fleetpermit/blob/main/GOVERNANCE.md">GOVERNANCE.md</a>.</p>
+            <p>Three principles every change must respect: vendor neutrality, errors that never add authority, and claims backed by tests or measurements. Read the full <a href="https://github.com/fleetpermit/fleetpermit/blob/main/GOVERNANCE.md">GOVERNANCE.md</a>.</p>
           </div>
         </section>
 
@@ -111,8 +111,8 @@
 
         <section id="roadmap" aria-labelledby="roadmap-h">
           <h2 id="roadmap-h">Roadmap</h2>
-          <p class="prose">v0.1 is deliberately small. Future items are plans, not commitments, and depend on user feedback and upstream progress.</p>
-          <h3>Done in v0.1</h3>
+          <p class="prose">v0.1 is a complete release for one placement provider, one enforcement provider and one protocol. The enhancements below follow user feedback and upstream progress.</p>
+          <h3>In v0.1</h3>
           <ul class="roadmap">
             <li><span class="pill pill-pass">Done</span><span>FleetAccessPolicy and ToolAccessLease APIs (<code>v1alpha1</code>) with strict validation</span></li>
             <li><span class="pill pill-pass">Done</span><span>Open Cluster Management placement and delivery with Placement, PlacementDecision and ManifestWork</span></li>
@@ -120,16 +120,18 @@
             <li><span class="pill pill-pass">Done</span><span>Default-deny anchor for tool backends; drift detection and immediate re-apply requests</span></li>
             <li><span class="pill pill-pass">Done</span><span>Per-cluster status, Prometheus metrics and OpenTelemetry traces</span></li>
             <li><span class="pill pill-pass">Done</span><span>Helm chart, reproducible 1 hub + 3 cluster lab, end-to-end scenarios and benchmarks</span></li>
+            <li><span class="pill pill-pass">Done</span><span>Signed container images and release assets, with an SPDX SBOM per release</span></li>
           </ul>
-          <h3>Future</h3>
+          <h3>Enhancements under consideration</h3>
           <ul class="roadmap">
-            <li><span class="pill pill-future">Future</span><span>Additional placement providers from neutral multicluster projects, through the existing placement seam</span></li>
-            <li><span class="pill pill-future">Future</span><span>Argument-level MCP matching, such as limits on <code>replicas</code>, when upstream supports it</span></li>
-            <li><span class="pill pill-future">Future</span><span>Approval workflows for leases</span></li>
-            <li><span class="pill pill-future">Future</span><span>Federated SPIFFE trust domains across clusters</span></li>
-            <li><span class="pill pill-future">Future</span><span>Conformance with upcoming upstream releases of kube-agentic-networking, Gateway API and Open Cluster Management</span></li>
+            <li><span class="pill pill-future">Next</span><span>Argument-level MCP matching, such as limits on <code>replicas</code>, and native expiry, when upstream supports them</span></li>
+            <li><span class="pill pill-future">Next</span><span>Faster detection of in-place edits to delivered objects</span></li>
+            <li><span class="pill pill-future">Next</span><span>Guidance and tests for federated SPIFFE trust domains across clusters</span></li>
+            <li><span class="pill pill-future">Next</span><span>Build provenance attestations, and the Helm chart as an OCI artifact</span></li>
+            <li><span class="pill pill-future">Later</span><span>Additional placement and enforcement providers from neutral projects, through the existing seams</span></li>
+            <li><span class="pill pill-future">Later</span><span>An optional approval workflow for leases</span></li>
           </ul>
-          <p class="prose" style="margin-top:16px">See <a href="https://github.com/fleetpermit/fleetpermit/blob/main/ROADMAP.md">ROADMAP.md</a> for the current list.</p>
+          <p class="prose" style="margin-top:16px">See <a href="https://github.com/fleetpermit/fleetpermit/blob/main/ROADMAP.md">ROADMAP.md</a> for the current list and what is out of scope.</p>
         </section>
       </div>
     </div>

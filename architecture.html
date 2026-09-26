@@ -117,7 +117,7 @@
             <li><div><h3>Define the ceiling</h3><p>The platform team creates a FleetAccessPolicy and an OCM Placement. The policy lists SPIFFE subjects, the Placement, the target (namespace plus XBackend or Gateway), the permitted MCP tools and the lease limits. <code>failMode</code> is <code>Closed</code>.</p></div></li>
             <li><div><h3>Request a lease</h3><p>Someone creates a ToolAccessLease, for example <code>incident-42</code>: <code>restart_workload</code> for 10 minutes, with a reason. The spec is immutable.</p></div></li>
             <li><div><h3>Check</h3><p>The controller checks WHO (the subject is in the policy), WHAT (the tools are a subset of its permissions), HOW LONG (the duration is at most <code>maxDuration</code>) and WHERE (the OCM PlacementDecision, which a lease may only narrow).</p></div></li>
-            <li><div><h3>Render and deliver</h3><p>It renders one XAccessPolicy per policy and cluster with one CEL rule per lease, plus an MCP session rule for <code>initialize</code> and <code>tools/list</code>, stamped with SHA-256 content digest annotations. One ManifestWork per cluster delivers it.</p></div></li>
+            <li><div><h3>Render and deliver</h3><p>It renders one XAccessPolicy per policy and cluster, with one CEL rule per lease and one session rule per subject for the MCP base protocol methods (<code>initialize</code>, <code>tools/list</code>, <code>ping</code> and others), stamped with SHA-256 content digest annotations. One ManifestWork per cluster delivers it.</p></div></li>
             <li><div><h3>Apply and report</h3><p>The OCM work agent applies it, the agentic networking controller programs Envoy, and acceptance flows back through ManifestWork status feedback. The lease becomes Ready once every cluster reports the current digest.</p></div></li>
             <li><div><h3>Call</h3><p>The agent calls the tool through the gateway with its mTLS SPIFFE identity. Envoy checks identity, tool and time and allows it. An unselected cluster, a wrong identity or an unlisted tool is denied.</p></div></li>
             <li><div><h3>Expire</h3><p>At expiry Envoy itself denies, because the time bound is part of the rule. This holds even when the hub is unreachable. The controller then replaces the grant with an inert policy that allows nothing, so the cluster stays wired for the next lease.</p></div></li>
@@ -127,7 +127,7 @@
         <section id="lifecycle" aria-labelledby="lifecycle-h">
           <h2 id="lifecycle-h">Lease lifecycle</h2>
           <figure class="figure">
-            <img src="assets/img/lease-lifecycle.svg" width="1200" height="560" alt="ToolAccessLease lifecycle. A new lease is Pending while the controller evaluates it. If WHO, WHAT or HOW LONG fails it becomes Denied, which is terminal, with reasons SubjectNotAllowed, PermissionNotAllowed, DurationExceedsMaximum or PolicyNotFound. Otherwise it becomes Active once a grant is rendered on a selected cluster, and Envoy allows the leased tools while request.time is before the expiry timestamp. When request.time reaches expiresAt it becomes Expired, also terminal, and the controller withdraws the grant. Deleting an Active lease revokes it on every cluster. expiresAt equals creationTimestamp plus duration, is computed once and is never extended.">
+            <img src="assets/img/lease-lifecycle.svg" width="1200" height="560" alt="ToolAccessLease lifecycle. A new lease is checked against its policy. If WHO, WHAT or HOW LONG fails it becomes Denied, which is terminal, with reasons SubjectNotAllowed, PermissionNotAllowed, DurationExceedsMaximum or PolicyNotFound. Otherwise it is Pending until a requested cluster is placed and has room under the upstream rule limit, and becomes Active once a grant is rendered on a selected cluster, and Envoy allows the leased tools while request.time is before the expiry timestamp. When request.time reaches expiresAt it becomes Expired, also terminal, and the controller withdraws the grant. Deleting an Active lease revokes it on every cluster. expiresAt equals creationTimestamp plus duration, is computed once and is never extended.">
           </figure>
           <p class="prose"><code>expiresAt</code> is the API server's creation time plus the lease duration. It is computed once from immutable inputs and never extended. To change a lease, delete it and create a new one, so every grant is traceable to exactly one request.</p>
         </section>
@@ -142,7 +142,7 @@
             <pre><code>request.mcp.tool_name in ['restart_workload'] &amp;&amp; request.time &lt; timestamp('2026-09-26T10:15:00Z')</code></pre>
           </div>
           <div class="prose">
-            <p>Envoy compiles it into an RBAC condition and stops honouring the grant at the expiry instant using the managed cluster's clock. Nothing on the hub needs to be reachable. The controller removes expired grants afterwards; that is cleanup, not enforcement.</p>
+            <p>Envoy compiles it into an RBAC condition and stops honouring the grant at the expiry instant, using the managed cluster's clock. Nothing on the hub needs to be reachable. The controller removes expired grants afterwards as cleanup; enforcement has already happened in the gateway.</p>
           </div>
           <figure class="figure">
             <img src="assets/img/disconnect-behavior.svg" width="1200" height="560" alt="Expiry with the hub unreachable, in three stages. First, the hub is connected, lease incident-42 is Active, the grant is present on cluster-east and restart_workload is allowed. Second, the hub is unreachable at expiry; the grant is still present, but request.time is past 10:15:00Z so the rule is false and the call is denied. Third, the hub reconnects, marks the lease Expired and withdraws the grant; the grant is removed, the default-deny anchor remains and the call stays denied.">
@@ -152,13 +152,13 @@
 
         <section id="rendered" aria-labelledby="rendered-h">
           <h2 id="rendered-h">What gets rendered</h2>
-          <p class="prose">For policy <code>sre-remediation</code> with lease <code>incident-42</code> on <code>cluster-east</code>. Identifiers are shortened.</p>
+          <p class="prose">For policy <code>sre-remediation</code> in namespace <code>fleet</code>, with lease <code>incident-42</code>, on <code>cluster-east</code>. UIDs and the digest are shortened.</p>
           <div class="code-block">
             <div class="code-title" data-label="rendered XAccessPolicy">XAccessPolicy delivered by ManifestWork</div>
             <pre><code class="language-yaml"><span class="tok-k">apiVersion</span>: agentic.networking.x-k8s.io/v1alpha1
 <span class="tok-k">kind</span>: XAccessPolicy
 <span class="tok-k">metadata</span>:
-  <span class="tok-k">name</span>: fleetpermit-sre-remediation-a46c9779
+  <span class="tok-k">name</span>: fleetpermit-sre-remediation-a46c9779b9dca599
   <span class="tok-k">namespace</span>: mcp-tools
   <span class="tok-k">labels</span>:
     <span class="tok-k">app.kubernetes.io/managed-by</span>: fleetpermit
@@ -172,7 +172,7 @@
     - {group: agentic.networking.x-k8s.io, kind: XBackend, name: fleet-tools}
   <span class="tok-k">action</span>: Allow
   <span class="tok-k">rules</span>:
-    - <span class="tok-k">name</span>: session-3f2a9c1b0d<span class="tok-c">   # MCP session methods for this subject</span>
+    - <span class="tok-k">name</span>: session-c8735226c1<span class="tok-c">   # MCP base protocol methods for this subject</span>
       <span class="tok-k">source</span>: {type: SPIFFE, spiffe: spiffe://cluster.local/ns/agents/sa/sre-agent}
       <span class="tok-k">authorization</span>:
         <span class="tok-k">type</span>: Inline
@@ -184,7 +184,8 @@
         <span class="tok-k">cel</span>:
           <span class="tok-k">expression</span>: <span class="tok-s">"request.mcp.tool_name in ['restart_workload'] &amp;&amp; request.time &lt; timestamp('2026-09-26T10:15:00Z')"</span></code></pre>
           </div>
-          <p class="prose">The content digest is SHA-256 over the canonical JSON of the policy UID, the cluster, the object's name and namespace, and its spec. Identical inputs give identical digests; any change to tools, subject, expiry or target changes it.</p>
+          <p class="prose">The object name ends in the first 16 hex characters of the SHA-256 of the policy's <code>namespace/name</code>; the ManifestWork on the hub has the same name. The session rule allows the MCP base protocol methods for its subject: <code>initialize</code>, <code>tools/list</code>, <code>ping</code>, methods under <code>completion/</code>, <code>logging/</code> and <code>notifications/</code>, the event stream and session close. Only lease rules allow <code>tools/call</code>.</p>
+          <p class="prose">The content digest is SHA-256 over the canonical JSON of the policy UID, the cluster, the object's name and namespace, and its spec. Identical inputs give identical digests, and any change to tools, subject, expiry or target changes it.</p>
         </section>
 
         <section id="seams" aria-labelledby="seams-h">
@@ -227,10 +228,11 @@
           <ul class="limits">
             <li><strong>Experimental upstream APIs</strong><span>XAccessPolicy (<code>v1alpha1</code>) and XBackend (<code>v0alpha0</code>) are experimental and may change.</span></li>
             <li><strong>No argument-level matching</strong><span>kube-agentic-networking v0.2.0 matches the tool name only, so a limit such as <code>replicas=1000</code> cannot be enforced (<a href="results.html#S16">S16</a>).</span></li>
-            <li><strong>Capacity</strong><span>Upstream allows at most 5 XAccessPolicies per target and 10 rules per policy, which leaves room for about 9 concurrent lease grants per policy per cluster. Excess leases are reported <code>CapacityExceeded</code>.</span></li>
-            <li><strong>Session methods</strong><span>MCP session methods (<code>initialize</code>, <code>tools/list</code>) are not time-bounded in the data plane. The controller removes them after the subject's last grant ends.</span></li>
+            <li><strong>Capacity</strong><span>Upstream allows at most 5 XAccessPolicies per target and 10 rules per policy, which leaves room for about 9 concurrent lease grants per policy per cluster. Excess leases are reported <code>CapacityExceeded</code>; a lease that fits on no cluster waits in <code>Pending</code> until capacity frees up.</span></li>
+            <li><strong>Session methods</strong><span>The MCP base protocol methods (<code>initialize</code>, <code>tools/list</code>, <code>ping</code> and others) are allowed by a per-subject rule with no time bound in the data plane. They cannot call tools, and the controller removes the rule after the subject's last grant ends.</span></li>
+            <li><strong>How upstream combines policies</strong><span>kube-agentic-networking v0.2.0 combines the Allow policies on a target with OR, while its API documentation says all of them must allow a request. The default-deny anchor depends on the implemented behaviour.</span></li>
             <li><strong>Clocks</strong><span>Expiry uses each managed cluster's clock, so clock skew shifts the moment of denial.</span></li>
-            <li><strong>Lab, not benchmark</strong><span>The measured results come from local kind clusters on one host, not a production benchmark.</span></li>
+            <li><strong>Local lab</strong><span>The measured results come from local kind clusters on one host. They are not a production benchmark.</span></li>
           </ul>
         </section>
       </div>

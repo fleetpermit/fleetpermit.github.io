@@ -34,7 +34,7 @@ that no placeholder text or absolute home-directory path slipped in. It has no d
 | `demo.html` | Policy playground, demo recordings, reproduction steps |
 | `results.html` | Results dashboard rendered from `data/results.json` |
 | `docs.html`, `community.html`, `404.html` | Getting started and API, contributing and roadmap, not-found page |
-| `assets/css/site.css` | All styles, including light and dark themes |
+| `assets/css/site.css` | Shared styles, including light and dark themes (`hero.css` and `agents.css` hold the home-page hero and the test-agent cards) |
 | `assets/js/` | Theme and navigation, the architecture player, the playground, the results renderer |
 | `assets/img/` | Logo and diagrams (SVG), social preview and avatar (PNG) |
 | `assets/video/` | Demo recordings; the demo page falls back to text if a file is missing |

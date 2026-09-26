@@ -9,7 +9,7 @@
   if (!preview && !root && !answerStats) return;
 
   var DATA_URL = 'data/results.json';
-  var DISCLAIMER = 'Local kind clusters on one development host — not a production benchmark.';
+  var DISCLAIMER = 'Local kind clusters on one development host. Not a production benchmark.';
 
   /* Minimal DOM builder; all JSON strings go through textContent. */
   function h(tag, attrs, children) {
@@ -379,7 +379,7 @@
     if (mm) items.push([mm.matched + ' of ' + mm.total, 'matrix calls matched the expected decision', mm.matched === mm.total]);
     var rep = Array.isArray(data.reproductions) && data.reproductions[0] ? data.reproductions[0] : null;
     if (rep && rep.summary && isNum(rep.summary.passed) && isNum(rep.summary.total)) {
-      items.push([rep.summary.passed + ' of ' + rep.summary.total, 'passed again in an independent run' + (rep.runner ? ' on ' + rep.runner : ''), rep.summary.failed === 0]);
+      items.push([rep.summary.passed + ' of ' + rep.summary.total, 'passed again' + (rep.runner ? ' on ' + rep.runner : ' on a GitHub-hosted runner'), rep.summary.failed === 0]);
     }
     var lat = data.latency || {};
     [['activationToAllowMs', 'median, lease created to first ALLOW'], ['revocationToDenyMs', 'median, lease deleted to first DENY'], ['expiryToDenyHubDownMs', 'median, expiry to DENY with the hub disconnected']].forEach(function (x) {
@@ -394,7 +394,7 @@
     answerStats.hidden = false;
   }
 
-  /* Independent reproductions of the end-to-end suite. */
+  /* Reproductions of the end-to-end suite on a GitHub-hosted runner. */
   function reproductionsBlock(reps) {
     if (!Array.isArray(reps) || !reps.length) return null;
     return h('div', { class: 'repro' }, reps.map(function (r) {
@@ -402,7 +402,7 @@
       var env = r.environment || {}, sm = r.summary || {};
       var envText = [[env.os, env.arch].filter(Boolean).join(' '), env.containerEngine, env.kubernetes ? 'Kubernetes ' + env.kubernetes : '', env.fleetpermitCommit ? 'commit ' + env.fleetpermitCommit : ''].filter(Boolean).join(', ');
       return h('article', { class: 'repro-card' }, [
-        h('h3', { text: r.runner || 'Independent run' }),
+        h('h3', { text: r.runner || 'Reproduction run' }),
         h('p', null, [envText ? envText + '. ' : '', r.finishedAt ? 'Finished ' + fmtDate(r.finishedAt) + '. ' : '',
           r.runURL ? h('a', { href: r.runURL, text: 'View the run' }) : null]),
         isNum(sm.passed) && isNum(sm.total) ? h('p', { class: 'score' }, [sm.passed + ' of ' + sm.total, h('small', { text: 'passed' + (isNum(sm.failed) ? ', ' + sm.failed + ' failed' : '') + (isNum(sm.unsupported) && sm.unsupported ? ', ' + sm.unsupported + ' unsupported' : '') })]) : null
@@ -682,16 +682,16 @@
       ]));
 
     var rb = reproductionsBlock(data.reproductions);
-    if (rb) root.appendChild(section('reproductions', 'Independent reproductions',
-      'The same end-to-end suite, run from a clean checkout on other infrastructure.', [rb]));
+    if (rb) root.appendChild(section('reproductions', 'Reproductions',
+      'The same end-to-end suite, run from a clean checkout on a GitHub-hosted runner.', [rb]));
 
     var method = data.benchmarkEnvironment && data.benchmarkEnvironment.method;
     root.appendChild(section('latency', 'Latency on the local lab',
-      method ? 'Method: ' + method + '.' : 'Measured by polling the gateway with real MCP calls, so each value includes the polling granularity.', [latencyBlock(data.latency)]));
+      method ? 'Method: ' + method + '.' : 'Measured by polling the gateways with real MCP calls, every affected cluster concurrently from the same start time, so each value includes the polling granularity.', [latencyBlock(data.latency)]));
 
     root.appendChild(section('scale', 'Simulated controller scale (envtest, no real clusters)',
       (data.scale && data.scale.environment && data.scale.environment.description ? data.scale.environment.description + '. ' : '') +
-      'These rows measure the controller against a simulated work agent. They are not measurements of real managed clusters.', [scaleBlock(data.scale)]));
+      'These rows measure the controller against a simulated work agent, without real managed clusters.', [scaleBlock(data.scale)]));
 
     root.appendChild(section('conformance', 'Upstream conformance',
       'The kube-agentic-networking conformance suite, run unmodified from the upstream repository against a lab cluster.', [conformanceBlock(data.conformance)]));

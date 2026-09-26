@@ -23,7 +23,7 @@
 <link rel="stylesheet" href="assets/css/agents.css?v=9dca5593b2">
 <script src="assets/js/hero.js?v=5190088c8a" defer></script>
 <script src="assets/js/architecture-player.js?v=5f2818ca07" defer></script>
-<script src="assets/js/results.js?v=fb60a4e2bf" defer></script>
+<script src="assets/js/results.js?v=2a0485dc6f" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -160,32 +160,32 @@
           <p class="evidence"><span>Evidence</span><a href="architecture.html">How the architecture works</a></p>
         </li>
         <li class="answer a2">
-          <h3>What is genuinely new?</h3>
-          <p class="answer-lead">Fleet-wide, time-bound authorization for agent-to-tool calls, not another MCP server.</p>
-          <p>Open Cluster Management places one policy across a fleet, short-lived leases activate it, and the expiry is enforced inside the gateway rule itself, so it holds even when the hub is unreachable.</p>
+          <h3>What is new?</h3>
+          <p class="answer-lead">Fleet-wide, time-bound authorization for agent-to-tool calls.</p>
+          <p>Open Cluster Management places one policy across a fleet, and short-lived leases activate it. The expiry is enforced inside the gateway rule itself, so it holds even when the hub is unreachable. FleetPermit does not serve tools; it governs calls to the MCP servers you already run.</p>
           <p class="evidence"><span>Evidence</span><a href="architecture.html#no-agent">Why no managed-cluster agent is needed</a></p>
         </li>
         <li class="answer a3">
-          <h3>What actually works today?</h3>
+          <h3>What works today?</h3>
           <ol class="pipeline" aria-label="The working path">
             <li>OCM Placement</li>
             <li>FleetPermit policy and lease</li>
             <li>Kubernetes Agentic Networking XAccessPolicy on Envoy</li>
             <li>MCP <span class="pill pill-allow">ALLOW</span> or <span class="pill pill-deny">DENY</span></li>
           </ol>
-          <p>All of it real, on 1 hub and 3 managed clusters.</p>
+          <p>The whole path runs on real clusters: 1 hub and 3 managed clusters.</p>
           <p class="evidence"><span>Evidence</span><a href="demo.html">Run the demo yourself</a></p>
         </li>
         <li class="answer a4">
           <h3>What evidence exists?</h3>
-          <p>Real multi-cluster end-to-end scenarios: lease activation and expiry, wrong identity and wrong tool denied, placement changes, drift repair, hub disconnect and reconnect, an agent × cluster × tool decision matrix, measured propagation and revocation latency, upstream conformance, and an independent reproduction on a GitHub-hosted Linux runner.</p>
+          <p>End-to-end scenarios on real clusters: lease activation and expiry, wrong identity and wrong tool denied, placement changes, drift repair, hub disconnect and reconnect, an agent × cluster × tool decision matrix, measured propagation and revocation latency, upstream conformance, and the same scenarios reproduced on a GitHub-hosted runner (Linux amd64).</p>
           <ul class="answer-stats" id="answer-stats" aria-label="Headline numbers from data/results.json" hidden></ul>
           <p class="evidence"><span>Evidence</span><a href="results.html">All results with raw evidence</a></p>
         </li>
         <li class="answer a5">
-          <h3>Why is it reusable open source?</h3>
+          <h3>Why is it reusable?</h3>
           <p class="answer-lead">No vendor, cloud, distribution or model lock-in.</p>
-          <p>Built only on Kubernetes, CNCF and Linux Foundation projects: OCM, Gateway API, kube-agentic-networking, Envoy, SPIFFE, MCP, Prometheus, OpenTelemetry and Helm. Apache-2.0, with provider seams for placement and enforcement.</p>
+          <p>It builds only on Kubernetes, CNCF and Linux Foundation projects: OCM, Gateway API, kube-agentic-networking, Envoy, SPIFFE, MCP, Prometheus, OpenTelemetry and Helm. It is licensed Apache-2.0, with provider seams for placement and enforcement.</p>
           <p class="evidence"><span>Evidence</span><a href="community.html#governance">Governance and dependency policy</a></p>
         </li>
       </ol>
@@ -354,7 +354,7 @@
     <div class="container">
       <div class="section-head">
         <h2 id="why-title">Why FleetPermit</h2>
-        <p>Agents that operate clusters need some authority. The question is how little, for how long, and on which clusters.</p>
+        <p>Agents that operate clusters need some authority. FleetPermit limits how much, for how long, and on which clusters.</p>
       </div>
       <div class="why-list">
         <div class="why-item">
@@ -370,8 +370,8 @@
           <p><code>get_cluster_health</code> and <code>read_secret</code> on the same server deserve different answers. Policies name MCP tools, and the gateway checks the tool name and the caller's SPIFFE identity on every call.</p>
         </div>
         <div class="why-item">
-          <h3>Failure should reduce authority</h3>
-          <p>A missing Placement, a render error, an unreachable hub or a deleted policy all end in fewer permissions, never more. <code>failMode</code> accepts only <code>Closed</code>.</p>
+          <h3>Errors never add authority</h3>
+          <p>A missing Placement, a render error or a deleted policy withdraws grants. With the hub unreachable, nothing new is granted and delivered leases still expire on time. <code>failMode</code> accepts only <code>Closed</code>. A backend with no grant is closed when the default-deny anchor is installed, because upstream enforces nothing on a backend without any XAccessPolicy.</p>
         </div>
       </div>
     </div>
@@ -530,12 +530,12 @@ incident-42   sre-remediation   2          2026-09-26T10:15:00Z   Active   1m</c
           <thead><tr><th scope="col">Property</th><th scope="col">Mechanism</th></tr></thead>
           <tbody>
             <tr><th scope="row">Time bound in the data plane</th><td>Every lease rule carries <code>request.time &lt; timestamp(expiresAt)</code>, evaluated by Envoy on each call. Expiry does not depend on the hub.</td></tr>
-            <tr><th scope="row">Default deny on every backend</th><td>A default-deny anchor XAccessPolicy sits next to each tool backend, so a backend with no grant refuses every call.</td></tr>
+            <tr><th scope="row">Default deny with the anchor</th><td>The shipped default-deny anchor, an XAccessPolicy installed next to each tool backend, makes a backend with no grant refuse every call. Upstream enforces nothing on a backend without any XAccessPolicy, so the anchor is part of the installation.</td></tr>
             <tr><th scope="row">Identity from the platform</th><td>Agents present SPIFFE X.509 certificates issued by Kubernetes Pod Certificates; the gateway authenticates them over mTLS.</td></tr>
             <tr><th scope="row">Only narrowing, never widening</th><td>A lease activates a subset of the policy's tools, for at most <code>maxDuration</code>, on at most the placement's clusters.</td></tr>
-            <tr><th scope="row">Least-privilege controller</th><td>The controller writes ManifestWork and reads placement. It cannot read secrets or create pods, RBAC or namespaces.</td></tr>
-            <tr><th scope="row">Fail closed</th><td><code>failMode</code> accepts only <code>Closed</code>. Render errors or a missing Placement withdraw grants. Denied and Expired leases are terminal.</td></tr>
-            <tr><th scope="row">Traceable content</th><td>Each rendered object carries SHA-256 content digest and source annotations; drifted objects are restored from the hub.</td></tr>
+            <tr><th scope="row">Narrow controller RBAC</th><td>On the hub, the controller reads placement and writes ManifestWork. It cannot read Secrets or create pods, RBAC or namespaces. The OCM work agent applies whatever a ManifestWork carries, so the controller's ServiceAccount is still a privileged credential; <code>--work-executor</code> makes the work agent apply FleetPermit's content as a restricted managed-cluster identity.</td></tr>
+            <tr><th scope="row">Errors never add authority</th><td>Render errors or a missing Placement withdraw grants, and lease grants expire on time. Denied and Expired leases are terminal. <code>failMode</code> accepts only <code>Closed</code>.</td></tr>
+            <tr><th scope="row">Traceable content</th><td>Each rendered object carries a SHA-256 content digest and source annotations. Drifted objects are restored from the hub.</td></tr>
           </tbody>
         </table>
       </div>
