@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security model | FleetPermit</title>
+<meta name="description" content="FleetPermit's trust boundaries, fail-closed behaviour, threat summary and honest limits.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#0c1728">
+<link rel="icon" href="assets/img/logo-mark.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/img/avatar-512.png">
+<link rel="stylesheet" href="assets/css/site.css">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="FleetPermit">
+<meta property="og:title" content="Security model | FleetPermit">
+<meta property="og:description" content="FleetPermit's trust boundaries, fail-closed behaviour, threat summary and honest limits.">
+<meta property="og:url" content="https://fleetpermit.github.io/security.html">
+<meta property="og:image" content="https://fleetpermit.github.io/assets/img/social-preview.png">
+<meta name="twitter:card" content="summary_large_image">
+<script>(function(){var d=document.documentElement;d.className=d.className.replace('no-js','js');try{var t=localStorage.getItem('fp-theme');if(t==='light'||t==='dark')d.setAttribute('data-theme',t);}catch(e){}})();</script>
+<script src="assets/js/site.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="index.html"><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect width="64" height="64" rx="14" fill="#0C1728"/><g stroke="#2DD4BF" stroke-width="3.2" stroke-linecap="round"><line x1="25" y1="24.5" x2="16.5" y2="16"/><line x1="39" y1="24.5" x2="47.5" y2="16"/></g><line x1="32" y1="41" x2="32" y2="45.5" stroke="#6B7F9C" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="0.01 4.4"/><rect x="8" y="7" width="12" height="12" rx="3" fill="#2DD4BF"/><rect x="44" y="7" width="12" height="12" rx="3" fill="#2DD4BF"/><rect x="27.1" y="47.6" width="9.8" height="9.8" rx="2.6" fill="none" stroke="#6B7F9C" stroke-width="2.2"/><path d="M22 25H42A3 3 0 0 1 45 28V29A3 3 0 0 0 45 35V36A3 3 0 0 1 42 39H22A3 3 0 0 1 19 36V35A3 3 0 0 0 19 29V28A3 3 0 0 1 22 25Z" fill="#F5B544"/><line x1="37" y1="27.6" x2="37" y2="36.6" stroke="#0C1728" stroke-width="1.6" stroke-dasharray="1.6 1.4"/></svg><span>FleetPermit</span><span class="version">v0.1.0</span></a>
+    <nav id="site-nav" class="site-nav" aria-label="Main">
+      <ul>
+        <li><a href="index.html">Overview</a></li>
+        <li><a href="architecture.html">Architecture</a></li>
+        <li><a href="security.html" aria-current="page">Security</a></li>
+        <li><a href="demo.html">Demo</a></li>
+        <li><a href="results.html">Results</a></li>
+        <li><a href="docs.html">Docs</a></li>
+        <li><a href="community.html">Community</a></li>
+      </ul>
+    </nav>
+    <div class="header-actions">
+      <a class="icon-btn" href="https://github.com/fleetpermit/fleetpermit"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg><span class="gh-label">GitHub</span><span class="visually-hidden"> repository</span></a>
+      <button class="icon-btn theme-toggle" type="button" aria-label="Switch theme"><svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg></button>
+      <button class="icon-btn menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span>Menu</span></button>
+    </div>
+  </div>
+</header>
+<main id="main">
+  <div class="container">
+    <header class="page-head">
+      <h1>Security model</h1>
+      <p class="lede">Every missing input, error or unreachable component results in less authority, never more. Here is how that holds, and where it stops.</p>
+    </header>
+
+    <section id="model" style="margin-bottom:48px" aria-labelledby="model-h">
+      <h2 id="model-h">Trust boundaries</h2>
+      <figure class="figure">
+        <img src="assets/img/security-model.svg" width="1200" height="660" alt="Trust boundaries and fail-closed points. The hub cluster contains API server admission (F1: malformed policies are rejected and failMode accepts only Closed), the fleetpermit-controller with a least-privilege ServiceAccount (F2: a render error or missing Placement withdraws grants; F3: Denied and Expired leases are terminal) and the Open Cluster Management hub. ManifestWork crosses the trust boundary to the managed cluster, where the OCM work agent may only manage XAccessPolicy. Kubernetes Pod Certificates issue the agent's SPIFFE X.509 identity. The Envoy gateway verifies it over mTLS and evaluates tool name and request time (F4: expiry holds with the hub unreachable; F6: wrong identity, unlisted tool or unselected cluster is denied). A default-deny anchor denies calls to a backend with no grant (F5).">
+      </figure>
+      <div class="prose">
+        <p>The hub decides; it does not sit in the request path. Kubernetes RBAC on the hub decides who may write a FleetAccessPolicy (the ceiling) and who may create a ToolAccessLease (activation), so on-call engineers can activate access without being able to change the ceiling. FleetPermit never issues, stores or sees credentials. The gateway authenticates the caller from its mTLS peer certificate.</p>
+      </div>
+    </section>
+
+    <div class="doc-layout">
+      <nav class="doc-toc" aria-label="On this page">
+        <h2>On this page</h2>
+        <ul>
+          <li><a href="#model">Trust boundaries</a></li>
+          <li><a href="#principles">Principles</a></li>
+          <li><a href="#fail-closed">If something disappears</a></li>
+          <li><a href="#threats">Threat summary</a></li>
+          <li><a href="#limits">Honest limits</a></li>
+          <li><a href="#report">Reporting</a></li>
+        </ul>
+      </nav>
+
+      <div class="doc-body">
+        <section id="principles" aria-labelledby="principles-h">
+          <h2 id="principles-h">Principles</h2>
+          <ol class="steps">
+            <li><div><h3>Ceiling and activation are separate objects</h3><p>A FleetAccessPolicy defines the maximum. A ToolAccessLease activates part of it for a bounded time.</p></div></li>
+            <li><div><h3>Enforce where the call happens</h3><p>Identity, tool and time are all checked by the gateway in front of the tool server.</p></div></li>
+            <li><div><h3>Fail closed</h3><p>No placement means nothing is delivered. A render error withdraws that cluster's grants. A lease that violates its policy is Denied, and Denied is terminal. A backend without any grant is closed by the default-deny anchor. <code>failMode</code> accepts only <code>Closed</code>.</p></div></li>
+            <li><div><h3>Subset only</h3><p>A lease can narrow tools, duration and clusters, never widen them, and its spec cannot be edited after creation.</p></div></li>
+            <li><div><h3>Traceable</h3><p>Every delivered object names its policy, generation, lease, cluster, expiry and SHA-256 content digest, so a rule found on a cluster leads back to the request that created it.</p></div></li>
+          </ol>
+        </section>
+
+        <section id="fail-closed" aria-labelledby="fail-closed-h">
+          <h2 id="fail-closed-h">What happens if something disappears</h2>
+          <div class="table-wrap">
+            <table class="prop-table">
+              <caption class="visually-hidden">Fail-closed behaviour when a component disappears</caption>
+              <thead><tr><th scope="col">If this disappears</th><th scope="col">Effect on authorization</th><th scope="col">Recovery</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">FleetPermit controller</th><td>Existing grants keep working until their expiry, which Envoy enforces. New leases are not activated.</td><td>Restart. State is recomputed from the API; a restart neither withdraws nor re-creates grants (<a href="results.html#S15">S15</a>).</td></tr>
+                <tr><th scope="row">OCM hub</th><td>Managed clusters keep enforcing their last delivered grants and expire them on time (<a href="results.html#S11">S11</a>). Early revocation cannot reach them.</td><td>On reconnection, expired grants are withdrawn (<a href="results.html#S12">S12</a>).</td></tr>
+                <tr><th scope="row">OCM work agent</th><td>Delivered grants stay enforced and expire on time. New leases and early revocation are not applied on that cluster, which is reported unavailable.</td><td>A work agent restart re-syncs.</td></tr>
+                <tr><th scope="row">Gateway or Envoy</th><td>There is no path to the tool server, so calls fail. A controller restart leaves Envoy's last configuration in place.</td><td>Standard Deployment recovery.</td></tr>
+                <tr><th scope="row">Identity issuer</th><td>Callers without a valid certificate cannot complete mTLS and are rejected.</td><td>Issuer recovery; certificates rotate automatically.</td></tr>
+                <tr><th scope="row">Placement</th><td>Every grant for the policy is withdrawn and the policy reports <code>Degraded</code> with <code>PlacementNotFound</code>.</td><td>Recreate the Placement.</td></tr>
+                <tr><th scope="row">A delivered XAccessPolicy</th><td>While it is missing, the default-deny anchor denies: availability is lost, not safety.</td><td>FleetPermit requests an immediate re-apply (<a href="results.html#S10">S10</a>).</td></tr>
+                <tr><th scope="row">The default-deny anchor</th><td>Upstream enforces nothing on a target with no XAccessPolicy, so the backend is open (<a href="results.html#A1">A1</a>). Install the anchor with every governed backend.</td><td>Re-apply <code>default-deny-anchor.yaml</code>.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="threats" aria-labelledby="threats-h">
+          <h2 id="threats-h">Threat summary</h2>
+          <p class="prose">A condensed view of the <a href="https://github.com/fleetpermit/fleetpermit/blob/main/docs/threat-model.md">threat model</a>. Scenario links go to the evidence on the results page.</p>
+          <div class="table-wrap">
+            <table class="prop-table">
+              <caption class="visually-hidden">Threats, mitigations and residual risk</caption>
+              <thead><tr><th scope="col">Threat</th><th scope="col">Mitigation</th><th scope="col">Residual risk</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">Compromised agent workload</th><td>Authority is limited to tools in an active lease, on placed clusters, until expiry (<a href="results.html#S2">S2</a>, <a href="results.html#S5">S5</a>).</td><td>Within an active lease the workload holds that lease's authority. Keep leases short and narrow.</td></tr>
+                <tr><th scope="row">Wrong or spoofed identity</th><td>mTLS peer certificate checked against the trust bundle; rules match the exact SPIFFE ID (<a href="results.html#S3">S3</a>).</td><td>Depends on the identity issuer's integrity.</td></tr>
+                <tr><th scope="row">Unapproved tool</th><td>Exact tool-name matching; <code>read_secret</code> is denied (<a href="results.html#S2">S2</a>).</td><td>None beyond upstream correctness.</td></tr>
+                <tr><th scope="row">Disallowed arguments</th><td><strong>Not mitigated in v0.1.</strong> Recorded as unsupported upstream (<a href="results.html#S16">S16</a>).</td><td>Use separate tools for dangerous operations, or validate arguments in the tool server.</td></tr>
+                <tr><th scope="row">Lease escalation</th><td>More tools or a longer duration than the policy allows marks the lease Denied; nothing is rendered (<a href="results.html#S8">S8</a>, <a href="results.html#S9">S9</a>).</td><td>None known.</td></tr>
+                <tr><th scope="row">CRD mutation or CEL injection</th><td>Lease spec is immutable. Tool names and SPIFFE IDs are validated by schema and again by the renderer; malformed policies are rejected (<a href="results.html#S14">S14</a>).</td><td>Whoever can edit the policy can change the ceiling. Protect it with RBAC.</td></tr>
+                <tr><th scope="row">Hub disconnect</th><td>Expiry is enforced by the gateway (<a href="results.html#S11">S11</a>); stale grants are withdrawn after reconnection (<a href="results.html#S12">S12</a>).</td><td>Early revocation cannot reach a disconnected cluster.</td></tr>
+                <tr><th scope="row">Placement change</th><td>A cluster that leaves the placement loses its grants; one that joins gains them (<a href="results.html#S7">S7</a>).</td><td>Withdrawal needs the hub to reach that cluster.</td></tr>
+                <tr><th scope="row">Controller ServiceAccount misuse</th><td>Least-privilege RBAC with no secrets, workloads or RBAC writes (<a href="results.html#RBAC">RBAC</a>).</td><td>ManifestWork write access is powerful. Protect the controller's namespace.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="limits" aria-labelledby="limits-h">
+          <h2 id="limits-h">Honest limits</h2>
+          <ul class="limits">
+            <li><strong>Experimental upstream APIs</strong><span>XAccessPolicy (<code>v1alpha1</code>) and XBackend (<code>v0alpha0</code>) in kube-agentic-networking are experimental. Its reference implementation is not described upstream as production-ready.</span></li>
+            <li><strong>No argument-level matching</strong><span>kube-agentic-networking v0.2.0 matches the tool name only. A call such as <code>scale_workload</code> with <code>replicas=1000</code> cannot be refused by argument.</span></li>
+            <li><strong>About 9 concurrent grants</strong><span>Upstream allows at most 5 XAccessPolicies per target and 10 rules per policy, so about 9 concurrent lease grants fit per policy per cluster. Excess leases are reported, never silently dropped.</span></li>
+            <li><strong>Session methods are not time-bounded</strong><span>MCP session methods (<code>initialize</code>, <code>tools/list</code>) are allowed by a separate rule that the controller removes. They cannot call tools.</span></li>
+            <li><strong>Managed cluster clocks</strong><span>Expiry uses each managed cluster's clock. A clock that runs behind honours a grant for longer, by the amount of skew.</span></li>
+            <li><strong>Early revocation needs the hub</strong><span>Deleting a lease before it expires reaches only clusters the hub can contact. Keep lease durations short.</span></li>
+            <li><strong>Local lab</strong><span>All measurements come from local kind clusters on one development host, not a production benchmark.</span></li>
+          </ul>
+          <p class="prose" style="margin-top:20px">FleetPermit does not make tool calls safe, does not guarantee the absence of vulnerabilities, and does not replace RBAC, network policy or authorization inside the tool server. It narrows who can call which tool, where, and for how long, and it reports what it enforces.</p>
+        </section>
+
+        <section id="report" aria-labelledby="report-h">
+          <h2 id="report-h">Reporting a vulnerability</h2>
+          <p class="prose">Please do not open a public issue. Use GitHub private vulnerability reporting on the repository: <a href="https://github.com/fleetpermit/fleetpermit/security/advisories/new">report a vulnerability</a>. Only maintainers can see the report. See the <a href="community.html#security">security policy summary</a>.</p>
+        </section>
+      </div>
+    </div>
+  </div>
+</main>
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div>
+      <p><strong>FleetPermit is an independent open-source project.</strong> Built on open technologies from the Kubernetes, CNCF and Linux Foundation ecosystems.</p>
+      <p>Licensed under Apache-2.0. Version v0.1.0 is a pre-release.</p>
+    </div>
+    <ul class="footer-links" aria-label="Project links">
+      <li><a href="https://github.com/fleetpermit/fleetpermit">GitHub repository</a></li>
+      <li><a href="https://github.com/fleetpermit/fleetpermit/blob/main/LICENSE">Apache-2.0 license</a></li>
+      <li><a href="community.html#security">Report a vulnerability</a></li>
+    </ul>
+  </div>
+</footer>
+<div id="live-status" class="visually-hidden" aria-live="polite"></div>
+</body>
+</html>

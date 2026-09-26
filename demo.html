@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo and policy playground | FleetPermit</title>
+<meta name="description" content="Try the FleetPermit policy model in an interactive playground, watch the demo recordings, and reproduce the lab yourself.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#0c1728">
+<link rel="icon" href="assets/img/logo-mark.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/img/avatar-512.png">
+<link rel="stylesheet" href="assets/css/site.css">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="FleetPermit">
+<meta property="og:title" content="Demo and policy playground | FleetPermit">
+<meta property="og:description" content="Try the FleetPermit policy model in an interactive playground, watch the demo recordings, and reproduce the lab yourself.">
+<meta property="og:url" content="https://fleetpermit.github.io/demo.html">
+<meta property="og:image" content="https://fleetpermit.github.io/assets/img/social-preview.png">
+<meta name="twitter:card" content="summary_large_image">
+<script>(function(){var d=document.documentElement;d.className=d.className.replace('no-js','js');try{var t=localStorage.getItem('fp-theme');if(t==='light'||t==='dark')d.setAttribute('data-theme',t);}catch(e){}})();</script>
+<script src="assets/js/site.js" defer></script>
+<script src="assets/js/playground.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="index.html"><svg viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect width="64" height="64" rx="14" fill="#0C1728"/><g stroke="#2DD4BF" stroke-width="3.2" stroke-linecap="round"><line x1="25" y1="24.5" x2="16.5" y2="16"/><line x1="39" y1="24.5" x2="47.5" y2="16"/></g><line x1="32" y1="41" x2="32" y2="45.5" stroke="#6B7F9C" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="0.01 4.4"/><rect x="8" y="7" width="12" height="12" rx="3" fill="#2DD4BF"/><rect x="44" y="7" width="12" height="12" rx="3" fill="#2DD4BF"/><rect x="27.1" y="47.6" width="9.8" height="9.8" rx="2.6" fill="none" stroke="#6B7F9C" stroke-width="2.2"/><path d="M22 25H42A3 3 0 0 1 45 28V29A3 3 0 0 0 45 35V36A3 3 0 0 1 42 39H22A3 3 0 0 1 19 36V35A3 3 0 0 0 19 29V28A3 3 0 0 1 22 25Z" fill="#F5B544"/><line x1="37" y1="27.6" x2="37" y2="36.6" stroke="#0C1728" stroke-width="1.6" stroke-dasharray="1.6 1.4"/></svg><span>FleetPermit</span><span class="version">v0.1.0</span></a>
+    <nav id="site-nav" class="site-nav" aria-label="Main">
+      <ul>
+        <li><a href="index.html">Overview</a></li>
+        <li><a href="architecture.html">Architecture</a></li>
+        <li><a href="security.html">Security</a></li>
+        <li><a href="demo.html" aria-current="page">Demo</a></li>
+        <li><a href="results.html">Results</a></li>
+        <li><a href="docs.html">Docs</a></li>
+        <li><a href="community.html">Community</a></li>
+      </ul>
+    </nav>
+    <div class="header-actions">
+      <a class="icon-btn" href="https://github.com/fleetpermit/fleetpermit"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg><span class="gh-label">GitHub</span><span class="visually-hidden"> repository</span></a>
+      <button class="icon-btn theme-toggle" type="button" aria-label="Switch theme"><svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 1.5v2.5M12 20v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M1.5 12H4M20 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg></button>
+      <button class="icon-btn menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span>Menu</span></button>
+    </div>
+  </div>
+</header>
+<main id="main">
+  <div class="container">
+    <header class="page-head">
+      <h1>Demo</h1>
+      <p class="lede">Try the policy model, watch the lab run, then run it yourself on one machine.</p>
+    </header>
+  </div>
+
+  <section class="section" id="playground" aria-labelledby="pg-title" style="padding-top:8px">
+    <div class="container">
+      <div class="section-head">
+        <h2 id="pg-title">Policy playground</h2>
+        <p>Pick an agent, a tool, a cluster and the lease state. The playground applies the same four questions FleetPermit asks and shows the first one that fails.</p>
+      </div>
+      <p class="callout"><strong>Educational visualization of the policy model — it does not contact a Kubernetes cluster.</strong>Each outcome links to the real end-to-end scenario that exercises it.</p>
+
+      <div class="playground">
+        <form class="pg-form" id="pg-form" aria-describedby="pg-model">
+          <fieldset>
+            <legend>Agent</legend>
+            <div class="seg">
+              <label><input type="radio" name="agent" value="sre-agent" checked><span>sre-agent</span></label>
+              <label><input type="radio" name="agent" value="security-agent"><span>security-agent</span></label>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Tool</legend>
+            <div class="seg">
+              <label><input type="radio" name="tool" value="get_cluster_health"><span>get_cluster_health</span></label>
+              <label><input type="radio" name="tool" value="restart_workload" checked><span>restart_workload</span></label>
+              <label><input type="radio" name="tool" value="read_secret"><span>read_secret</span></label>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Cluster</legend>
+            <div class="seg">
+              <label><input type="radio" name="cluster" value="cluster-east" checked><span>east</span></label>
+              <label><input type="radio" name="cluster" value="cluster-west"><span>west</span></label>
+              <label><input type="radio" name="cluster" value="cluster-edge"><span>edge</span></label>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Lease</legend>
+            <div class="seg">
+              <label><input type="radio" name="lease" value="active" checked><span>active</span></label>
+              <label><input type="radio" name="lease" value="expired"><span>expired</span></label>
+            </div>
+          </fieldset>
+          <div class="pg-model" id="pg-model">
+            <p style="margin-bottom:6px"><strong>The model</strong></p>
+            <ul class="small" style="margin:0">
+              <li>Policy <code>sre-remediation</code> subjects: <code>sre-agent</code></li>
+              <li>Placement <code>env=production</code> selects east and west; edge is <code>env=staging</code></li>
+              <li>Policy permissions: <code>get_cluster_health</code>, <code>restart_workload</code>, <code>scale_workload</code></li>
+              <li>The active lease grants <code>get_cluster_health</code> and <code>restart_workload</code></li>
+            </ul>
+          </div>
+        </form>
+
+        <div class="pg-result" id="pg-result" aria-live="polite" aria-atomic="true">
+          <div class="verdict allow" id="pg-verdict">
+            <span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+            <span id="pg-verdict-text">ALLOW</span>
+          </div>
+          <p id="pg-summary" style="margin:0">sre-agent may call restart_workload on cluster-east while the lease is active.</p>
+          <ol class="checks" id="pg-checks" aria-label="Checks in order">
+            <li class="ok"><span class="q">WHO?</span><span class="detail">sre-agent is a subject of the policy.</span></li>
+            <li class="ok"><span class="q">WHERE?</span><span class="detail">cluster-east is selected by the Placement.</span></li>
+            <li class="ok"><span class="q">WHAT?</span><span class="detail">restart_workload is granted by the lease.</span></li>
+            <li class="ok"><span class="q">HOW LONG?</span><span class="detail">The lease is active.</span></li>
+          </ol>
+          <p style="margin:0" id="pg-rule-wrap"><span class="small muted">Rule the gateway evaluates on this cluster</span><br><code id="pg-rule">request.mcp.tool_name in ['get_cluster_health', 'restart_workload'] &amp;&amp; request.time &lt; timestamp('2026-09-26T10:15:00Z')</code></p>
+          <p style="margin:0"><a id="pg-link" href="results.html#S1">See the matching real scenario: S1</a></p>
+        </div>
+      </div>
+      <noscript><p class="state" style="margin-top:16px">The playground needs JavaScript. The rule is simple: ALLOW only when the agent is sre-agent, the cluster is east or west, the tool is get_cluster_health or restart_workload, and the lease is active.</p></noscript>
+    </div>
+  </section>
+
+  <section class="section" id="videos" aria-labelledby="video-title">
+    <div class="container">
+      <div class="section-head">
+        <h2 id="video-title">Demo recordings</h2>
+        <p>Recordings of the narrated lab demo, <code>make demo-run</code>, on the local kind clusters.</p>
+      </div>
+      <div class="video-grid">
+        <figure class="video-card">
+          <video data-optional controls preload="none" src="assets/video/demo-overview.mp4" poster="assets/video/demo-overview.jpg" aria-describedby="v1-cap"></video>
+          <figcaption id="v1-cap"><strong>Overview</strong><span>A lease activates a tool on the selected clusters, the other cluster denies, and the lease expires.</span></figcaption>
+        </figure>
+        <figure class="video-card">
+          <video data-optional controls preload="none" src="assets/video/demo-security.mp4" poster="assets/video/demo-security.jpg" aria-describedby="v2-cap"></video>
+          <figcaption id="v2-cap"><strong>Security checks</strong><span>Calls and leases that FleetPermit refuses, and why.</span></figcaption>
+        </figure>
+        <figure class="video-card">
+          <video data-optional controls preload="none" src="assets/video/demo-disconnected-expiry.mp4" poster="assets/video/demo-disconnected-expiry.jpg" aria-describedby="v3-cap"></video>
+          <figcaption id="v3-cap"><strong>Expiry with the hub unreachable</strong><span>The gateways deny at the expiry time while the hub is unreachable, then clean up on reconnection.</span></figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="reproduce" aria-labelledby="repro-title">
+    <div class="container">
+      <div class="section-head">
+        <h2 id="repro-title">Reproduce it yourself</h2>
+        <p>Everything above runs on one machine with podman (or docker) and kind. The lab only talks to clusters through its own kubeconfig, never your current context.</p>
+      </div>
+      <div class="two-col">
+        <div>
+          <h3>You need</h3>
+          <ul>
+            <li>Go (version in <code>go.mod</code>), Helm and Python 3</li>
+            <li>podman, or docker when podman is absent</li>
+            <li>kind, kubectl, <code>clusteradm</code>, jq and curl</li>
+          </ul>
+          <p class="small muted">With podman the scripts set <code>KIND_EXPERIMENTAL_PROVIDER=podman</code> for you and start the podman machine if it is stopped.</p>
+        </div>
+        <div class="code-block" data-commands-only>
+          <div class="code-title" data-label="reproduction commands">terminal</div>
+          <pre><code><span class="tok-p">$ </span>git clone https://github.com/fleetpermit/fleetpermit
+<span class="tok-p">$ </span>cd fleetpermit
+<span class="tok-p">$ </span>make demo-up      <span class="tok-c"># 1 hub + 3 managed kind clusters</span>
+<span class="tok-p">$ </span>make demo-run     <span class="tok-c"># the narrated demo in the recordings</span>
+<span class="tok-p">$ </span>make test-e2e     <span class="tok-c"># every scenario on the results page</span>
+<span class="tok-p">$ </span>make benchmark    <span class="tok-c"># latency and simulated scale</span>
+<span class="tok-p">$ </span>make demo-down    <span class="tok-c"># delete only the clusters this lab created</span></code></pre>
+        </div>
+      </div>
+      <p>Unit and integration tests do not need the lab: <code>make test</code>.</p>
+    </div>
+  </section>
+</main>
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div>
+      <p><strong>FleetPermit is an independent open-source project.</strong> Built on open technologies from the Kubernetes, CNCF and Linux Foundation ecosystems.</p>
+      <p>Licensed under Apache-2.0. Version v0.1.0 is a pre-release.</p>
+    </div>
+    <ul class="footer-links" aria-label="Project links">
+      <li><a href="https://github.com/fleetpermit/fleetpermit">GitHub repository</a></li>
+      <li><a href="https://github.com/fleetpermit/fleetpermit/blob/main/LICENSE">Apache-2.0 license</a></li>
+      <li><a href="community.html#security">Report a vulnerability</a></li>
+    </ul>
+  </div>
+</footer>
+<div id="live-status" class="visually-hidden" aria-live="polite"></div>
+</body>
+</html>
