@@ -48,7 +48,7 @@
   <div class="container">
     <header class="page-head">
       <h1>Security model</h1>
-      <p class="lede">Errors never add authority: a failure withdraws grants or leaves them to expire on time. This page shows how that works, and where it stops.</p>
+      <p class="lede">With the default-deny anchor installed, errors never add authority: a failure withdraws grants or leaves them to expire on time. This page shows how that works, and where it stops.</p>
     </header>
 
     <section id="model" style="margin-bottom:48px" aria-labelledby="model-h">
@@ -58,7 +58,7 @@
       </figure>
       <div class="prose">
         <p>The hub makes decisions but does not sit in the request path. Kubernetes RBAC on the hub decides who may write a FleetAccessPolicy (the ceiling) and who may create a ToolAccessLease (activation), so on-call engineers can activate access without being able to change the ceiling. FleetPermit never issues, stores or sees credentials. The gateway authenticates the caller from its mTLS peer certificate.</p>
-        <p>The controller has no access to Secrets, workloads or RBAC on the hub. It can create and update ManifestWork in every managed-cluster namespace, though, and the OCM work agent applies that content on the managed cluster. Treat the controller's ServiceAccount as a privileged credential. The <code>--work-executor</code> flag makes the work agent apply FleetPermit's content as a restricted managed-cluster ServiceAccount. On each managed cluster, <code>work-agent-rbac.yaml</code> adds XAccessPolicy permissions to the OCM work agent; it does not restrict the agent.</p>
+        <p>The controller has no access to Secrets, workloads or RBAC on the hub. It can create and update ManifestWork in every managed-cluster namespace, though, and the OCM work agent applies that content on the managed cluster. Treat the controller's ServiceAccount as a privileged credential. The <code>--work-executor</code> flag makes the work agent apply FleetPermit's content as a restricted managed-cluster ServiceAccount (not exercised by the lab tests). On each managed cluster, <code>work-agent-rbac.yaml</code> adds XAccessPolicy permissions to the OCM work agent; it does not restrict the agent.</p>
       </div>
     </section>
 
@@ -81,9 +81,9 @@
           <ol class="steps">
             <li><div><h3>Ceiling and activation are separate objects</h3><p>A FleetAccessPolicy defines the maximum. A ToolAccessLease activates part of it for a bounded time.</p></div></li>
             <li><div><h3>Enforce where the call happens</h3><p>Identity, tool and time are all checked by the gateway in front of the tool server.</p></div></li>
-            <li><div><h3>Errors never add authority</h3><p>No placement means nothing is delivered, and existing grants are withdrawn. A render error withdraws that cluster's grants. A lease that violates its policy is Denied, and Denied is terminal. With the hub or the controller down, delivered leases still expire on time. <code>failMode</code> accepts only <code>Closed</code>. A backend without any grant is closed only when the default-deny anchor is installed, because upstream enforces nothing on a backend without any XAccessPolicy.</p></div></li>
+            <li><div><h3>With the default-deny anchor installed, errors never add authority</h3><p>No placement means nothing is delivered, and existing grants are withdrawn. A render error withdraws that cluster's grants. A lease that violates its policy is Denied, and Denied is terminal. With the hub or the controller down, delivered leases still expire on time. <code>failMode</code> accepts only <code>Closed</code>. On a cluster that FleetPermit does not currently select, or has withdrawn from, the backend is closed only when the anchor is installed; on selected clusters FleetPermit's inert policy also denies. Upstream enforces nothing on a backend without any XAccessPolicy.</p></div></li>
             <li><div><h3>Subset only</h3><p>A lease can narrow tools, duration and clusters, never widen them, and its spec cannot be edited after creation.</p></div></li>
-            <li><div><h3>Traceable</h3><p>Every delivered object names its policy, generation, lease, cluster, expiry and SHA-256 content digest, so a rule found on a cluster leads back to the request that created it.</p></div></li>
+            <li><div><h3>Traceable</h3><p>Every delivered object carries the source policy, its UID and generation, the cluster and a SHA-256 content digest. Objects with lease grants also list the lease UIDs and the latest expiry, so a rule found on a cluster leads back to the request that created it.</p></div></li>
           </ol>
         </section>
 
@@ -96,12 +96,12 @@
               <tbody>
                 <tr><th scope="row">FleetPermit controller</th><td>Existing grants keep working until their expiry, which Envoy enforces. New leases are not activated.</td><td>Restart. State is recomputed from the API; a restart neither withdraws nor re-creates grants (<a href="results.html#S15">S15</a>).</td></tr>
                 <tr><th scope="row">OCM hub</th><td>Managed clusters keep enforcing their last delivered grants and expire them on time (<a href="results.html#S11">S11</a>). Early revocation cannot reach them.</td><td>On reconnection, expired grants are withdrawn (<a href="results.html#S12">S12</a>).</td></tr>
-                <tr><th scope="row">OCM work agent</th><td>Delivered grants stay enforced and expire on time. New leases and early revocation are not applied on that cluster, which is reported unavailable.</td><td>A work agent restart re-syncs.</td></tr>
+                <tr><th scope="row">OCM work agent</th><td>Delivered grants stay enforced and expire on time. New leases and early revocation are not applied on that cluster. A cluster with a pending change shows as not ready (<code>Applying</code>); it is reported <code>ClusterUnavailable</code> only once OCM marks the ManagedCluster unavailable.</td><td>A work agent restart re-syncs.</td></tr>
                 <tr><th scope="row">Gateway or Envoy</th><td>There is no path to the tool server, so calls fail. A controller restart leaves Envoy's last configuration in place.</td><td>Standard Deployment recovery.</td></tr>
                 <tr><th scope="row">Identity issuer</th><td>Callers without a valid certificate cannot complete mTLS and are rejected.</td><td>Issuer recovery; certificates rotate automatically.</td></tr>
                 <tr><th scope="row">Placement</th><td>Every grant for the policy is withdrawn and the policy reports <code>Degraded</code> with <code>PlacementNotFound</code>. Its leases wait in <code>Pending</code> (<code>NoEligibleClusters</code>); they are not denied.</td><td>Recreate the Placement. Leases that have not expired are delivered again.</td></tr>
-                <tr><th scope="row">FleetAccessPolicy</th><td>The finalizer withdraws every grant, and every lease of the policy becomes <code>Denied</code> (<code>PolicyNotFound</code>), which is terminal.</td><td>Recreate the policy and issue new leases.</td></tr>
-                <tr><th scope="row">A delivered XAccessPolicy</th><td>While it is missing, the default-deny anchor denies. Calls fail, and no extra access is granted.</td><td>FleetPermit requests an immediate re-apply (<a href="results.html#S10">S10</a>).</td></tr>
+                <tr><th scope="row">FleetAccessPolicy</th><td>The finalizer withdraws every grant, and every lease of the policy that has not expired becomes <code>Denied</code> (<code>PolicyNotFound</code>), which is terminal. Expired leases stay <code>Expired</code>.</td><td>Recreate the policy and issue new leases.</td></tr>
+                <tr><th scope="row">A delivered XAccessPolicy</th><td>The gateway may still allow calls briefly, until it drops the deleted rule; then the default-deny anchor denies.</td><td>OCM reports the object missing at its next status sync (every 10 s in the lab), and FleetPermit requests an immediate re-apply (<a href="results.html#S10">S10</a>). The <a href="results.html#latency">results</a> show the measured drift recovery.</td></tr>
                 <tr><th scope="row">The default-deny anchor</th><td>Upstream enforces nothing on a target with no XAccessPolicy, so the backend is open (<a href="results.html#A1">A1</a>). Install the anchor with every governed backend.</td><td>Re-apply <code>default-deny-anchor.yaml</code>.</td></tr>
               </tbody>
             </table>
@@ -124,7 +124,7 @@
                 <tr><th scope="row">CRD mutation or CEL injection</th><td>Lease spec is immutable. Tool names and SPIFFE IDs are validated by schema and again by the renderer; malformed policies are rejected (<a href="results.html#S14">S14</a>).</td><td>Whoever can edit the policy can change the ceiling. Protect it with RBAC.</td></tr>
                 <tr><th scope="row">Hub disconnect</th><td>Expiry is enforced by the gateway (<a href="results.html#S11">S11</a>); stale grants are withdrawn after reconnection (<a href="results.html#S12">S12</a>).</td><td>Early revocation cannot reach a disconnected cluster.</td></tr>
                 <tr><th scope="row">Placement change</th><td>A cluster that leaves the placement loses its grants; one that joins gains them (<a href="results.html#S7">S7</a>).</td><td>Withdrawal needs the hub to reach that cluster.</td></tr>
-                <tr><th scope="row">Controller ServiceAccount misuse</th><td>No access to Secrets, workloads or RBAC on the hub (<a href="results.html#RBAC">RBAC</a>). The optional <code>--work-executor</code> flag makes the OCM work agent apply content as a restricted managed-cluster identity.</td><td>The controller can write ManifestWork in every managed-cluster namespace, so a stolen credential could deliver content through the OCM work agent unless an executor restricts it. Protect the controller's namespace.</td></tr>
+                <tr><th scope="row">Controller ServiceAccount misuse</th><td>No access to Secrets, workloads or RBAC on the hub (<a href="results.html#RBAC">RBAC</a>). The optional <code>--work-executor</code> flag (not exercised by the lab tests) makes the OCM work agent apply content as a restricted managed-cluster identity.</td><td>The controller can write ManifestWork in every managed-cluster namespace, so a stolen credential could deliver content through the OCM work agent unless an executor restricts it. Protect the controller's namespace.</td></tr>
               </tbody>
             </table>
           </div>
@@ -132,16 +132,18 @@
 
         <section id="limits" aria-labelledby="limits-h">
           <h2 id="limits-h">Limits</h2>
-          <ul class="limits">
-            <li><strong>Experimental upstream APIs</strong><span>XAccessPolicy (<code>v1alpha1</code>) and XBackend (<code>v0alpha0</code>) in kube-agentic-networking are experimental. Its reference implementation is not described upstream as production-ready.</span></li>
-            <li><strong>No argument-level matching</strong><span>kube-agentic-networking v0.2.0 matches the tool name only. A call such as <code>scale_workload</code> with <code>replicas=1000</code> cannot be refused by argument.</span></li>
-            <li><strong>About 9 concurrent grants</strong><span>Upstream allows at most 5 XAccessPolicies per target and 10 rules per policy, so about 9 concurrent lease grants fit per policy per cluster. Excess leases are reported as <code>CapacityExceeded</code>, and a lease that fits on no cluster waits in <code>Pending</code>.</span></li>
-            <li><strong>Session methods are not time-bounded</strong><span>The MCP base protocol methods (<code>initialize</code>, <code>tools/list</code>, <code>ping</code>, <code>completion/*</code>, <code>logging/*</code>, <code>notifications/*</code>, the event stream and session close) are allowed by a separate rule that the controller removes. They cannot call tools.</span></li>
-            <li><strong>How upstream combines policies</strong><span>kube-agentic-networking v0.2.0 combines the Allow policies on a target with OR, while its API documentation says all of them must allow a request. The default-deny anchor depends on the implemented behaviour, so FleetPermit tracks it with every upstream upgrade.</span></li>
-            <li><strong>Managed cluster clocks</strong><span>Expiry uses each managed cluster's clock. A clock that runs behind honours a grant for longer, by the amount of skew.</span></li>
-            <li><strong>Early revocation needs the hub</strong><span>Deleting a lease before it expires reaches only clusters the hub can contact. Keep lease durations short.</span></li>
-            <li><strong>Local lab</strong><span>All measurements come from local kind clusters on one development host, not a production benchmark.</span></li>
-          </ul>
+          <div class="prose">
+            <ul>
+              <li>XAccessPolicy (<code>v1alpha1</code>) and XBackend (<code>v0alpha0</code>) in kube-agentic-networking are experimental. Its reference implementation is not described upstream as production-ready.</li>
+              <li>kube-agentic-networking v0.2.0 matches the tool name only. A call such as <code>scale_workload</code> with <code>replicas=1000</code> cannot be refused by argument.</li>
+              <li>Upstream allows at most 5 XAccessPolicies per target and 10 rules per policy, so about 9 concurrent lease grants fit per policy per cluster. Excess leases are reported as <code>CapacityExceeded</code>, and a lease that fits on no cluster waits in <code>Pending</code>.</li>
+              <li>The MCP base protocol methods (<code>initialize</code>, <code>tools/list</code>, <code>ping</code>, <code>completion/*</code>, <code>logging/*</code>, <code>notifications/*</code>, the event stream and session close) are allowed by a separate rule that has no time bound in the data plane; the controller removes it. They cannot call tools.</li>
+              <li>kube-agentic-networking v0.2.0 combines the Allow policies on a target with OR, while its API documentation says all of them must allow a request. The default-deny anchor depends on the implemented behaviour, so FleetPermit tracks it with every upstream upgrade.</li>
+              <li>Expiry uses each managed cluster's clock. A clock that runs behind honours a grant for longer, by the amount of skew.</li>
+              <li>Deleting a lease before it expires reaches only clusters the hub can contact, so early revocation needs the hub. Keep lease durations short.</li>
+              <li>All measurements come from local kind clusters on one development host, except the GitHub-hosted reproduction and the envtest scale simulation. They are not a production benchmark.</li>
+            </ul>
+          </div>
           <p class="prose" style="margin-top:20px">FleetPermit does not make tool calls safe, does not guarantee the absence of vulnerabilities, and does not replace RBAC, network policy or authorization inside the tool server. It narrows who can call which tool, where, and for how long, and it reports what it enforces.</p>
         </section>
 

@@ -10,6 +10,7 @@
 <link rel="icon" href="assets/img/logo-mark.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/img/avatar-512.png">
 <link rel="stylesheet" href="assets/css/site.css?v=c1f22acbdc">
+<link rel="stylesheet" href="assets/css/flows.css?v=1bc2b12438">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="FleetPermit">
 <meta property="og:title" content="Architecture | FleetPermit">
@@ -19,6 +20,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){var d=document.documentElement,t='dark';d.className=d.className.replace('no-js','js');try{var s=localStorage.getItem('fp-theme');if(s==='light'||s==='dark')t=s;}catch(e){}d.setAttribute('data-theme',t);})();</script>
 <script src="assets/js/site.js?v=9cbeaed696" defer></script>
+<script src="assets/js/flows.js?v=10e6ed8d24" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -66,6 +68,7 @@
           <li><a href="#overview">Overview</a></li>
           <li><a href="#components">Components</a></li>
           <li><a href="#flow">How it works</a></li>
+          <li><a href="#flows">Every flow, animated</a></li>
           <li><a href="#lifecycle">Lease lifecycle</a></li>
           <li><a href="#no-agent">No managed-cluster agent</a></li>
           <li><a href="#rendered">What gets rendered</a></li>
@@ -120,16 +123,226 @@
             <li><div><h3>Render and deliver</h3><p>It renders one XAccessPolicy per policy and cluster, with one CEL rule per lease and one session rule per subject for the MCP base protocol methods (<code>initialize</code>, <code>tools/list</code>, <code>ping</code> and others), stamped with SHA-256 content digest annotations. One ManifestWork per cluster delivers it.</p></div></li>
             <li><div><h3>Apply and report</h3><p>The OCM work agent applies it, the agentic networking controller programs Envoy, and acceptance flows back through ManifestWork status feedback. The lease becomes Ready once every cluster reports the current digest.</p></div></li>
             <li><div><h3>Call</h3><p>The agent calls the tool through the gateway with its mTLS SPIFFE identity. Envoy checks identity, tool and time and allows it. An unselected cluster, a wrong identity or an unlisted tool is denied.</p></div></li>
-            <li><div><h3>Expire</h3><p>At expiry Envoy itself denies, because the time bound is part of the rule. This holds even when the hub is unreachable. The controller then replaces the grant with an inert policy that allows nothing, so the cluster stays wired for the next lease.</p></div></li>
+            <li><div><h3>Expire</h3><p>At expiry Envoy itself denies, because the time bound is part of the rule. This holds even when the hub is unreachable. The controller then removes the grant. If no other grant remains on that cluster, an inert policy that allows nothing stays in place, so the cluster stays wired for the next lease.</p></div></li>
           </ol>
+        </section>
+
+        <section id="flows" aria-labelledby="flows-h">
+          <h2 id="flows-h">Every flow, animated</h2>
+          <div class="prose">
+            <p>The end-to-end suite makes real MCP calls through the Envoy gateways of a local lab. The lab has one hub and three managed clusters. The Placement selects cluster-east and cluster-west (<code>env=production</code>). cluster-edge is not selected. The caller is <code>sre-agent</code>, which the policy lists, or <code>security-agent</code>, which it does not.</p>
+            <p>Each tab replays one group of scenarios in the order the test script runs them. The result and timing under each scene come from the latest run, read from the same file as the <a href="results.html">results page</a>.</p>
+          </div>
+          <ul class="fl-legend" aria-label="How to read the scenes">
+            <li><span class="fl-sw ticket" aria-hidden="true"></span>A lease, or a ManifestWork on its way to a cluster</li>
+            <li><span class="fl-sw allow" aria-hidden="true"></span>ALLOW, or a grant in place</li>
+            <li><span class="fl-sw deny" aria-hidden="true"></span>DENY, or a grant being withdrawn</li>
+            <li><span class="fl-sw unplaced" aria-hidden="true"></span>Cluster not selected by the Placement</li>
+          </ul>
+
+          <div class="fl" id="flows-app">
+            <div class="fl-panel" id="flow-activation" data-flow="activation" data-tab="Activation" data-ids="S1 S6">
+              <h3>Activation</h3>
+              <p class="fl-lede">A new lease becomes a working grant on the selected clusters and nowhere else.</p>
+              <ol class="fl-steps">
+                <li><span class="fl-step"><span>The test creates a lease for <code>sre-agent</code>: <code>restart_workload</code> and <code>get_cluster_health</code> for 5 minutes.</span></span></li>
+                <li><span class="fl-step"><span>FleetPermit on the hub checks it against the policy. The subject is listed, both tools are permitted, and 5 minutes is within the 10 minute maximum.</span></span></li>
+                <li><span class="fl-step"><span>The Placement selects cluster-east and cluster-west. FleetPermit renders an XAccessPolicy for each, sends it in a ManifestWork and marks the lease Active.</span></span></li>
+                <li><span class="fl-step"><span><code>sre-agent</code> calls <code>restart_workload</code> on both clusters and gets ALLOW. The test times each cluster from lease creation to the first ALLOW.</span></span></li>
+                <li><span class="fl-step"><span>The lease reports Ready once OCM confirms the policy is applied on both clusters.</span></span></li>
+                <li><span class="fl-step"><span>cluster-edge is not selected. The same call there gets DENY, and no grant was rendered on it (S6).</span></span></li>
+              </ol>
+              <div class="fl-facts">
+                <div class="fl-box fl-tested">
+                  <h4>Tested by</h4>
+                  <ul class="fl-scen">
+                    <li data-id="S1"><a class="fl-id" href="results.html#S1">S1</a></li>
+                    <li data-id="S6"><a class="fl-id" href="results.html#S6">S6</a></li>
+                  </ul>
+                </div>
+                <div class="fl-box fl-metrics" data-keys="activationToAllowMs" hidden></div>
+              </div>
+            </div>
+
+            <div class="fl-panel" id="flow-denied" data-flow="denied" data-tab="Wrong tool or identity" data-ids="S2 S3 S4 S8 S9">
+              <h3>Wrong tool or wrong identity</h3>
+              <p class="fl-lede">Five ways to ask for more than the policy and the lease allow. Each one is refused.</p>
+              <ol class="fl-steps">
+                <li><span class="fl-step"><span>Before any lease exists, <code>sre-agent</code> calls <code>restart_workload</code> on cluster-east. DENY: the policy alone grants nothing (S4).</span></span></li>
+                <li><span class="fl-step"><span>With a lease for <code>restart_workload</code> and <code>get_cluster_health</code> active, <code>sre-agent</code> calls <code>read_secret</code>. DENY: the policy does not permit that tool (S2).</span></span></li>
+                <li><span class="fl-step"><span>It calls <code>scale_workload</code>. DENY: the policy permits it, but the lease did not ask for it (S2).</span></span></li>
+                <li><span class="fl-step"><span><code>security-agent</code> calls <code>restart_workload</code>. DENY: no policy lists its identity (S3).</span></span></li>
+                <li><span class="fl-step"><span>A new lease asks for <code>restart_workload</code> and <code>read_secret</code>. The hub marks it Denied with reason PermissionNotAllowed, and <code>read_secret</code> stays DENY (S8).</span></span></li>
+                <li><span class="fl-step"><span>A lease that asks for 1 hour, against the policy's 10 minute maximum, is Denied with reason DurationExceedsMaximum (S9).</span></span></li>
+              </ol>
+              <div class="fl-facts">
+                <div class="fl-box fl-tested">
+                  <h4>Tested by</h4>
+                  <ul class="fl-scen">
+                    <li data-id="S2"><a class="fl-id" href="results.html#S2">S2</a></li>
+                    <li data-id="S3"><a class="fl-id" href="results.html#S3">S3</a></li>
+                    <li data-id="S4"><a class="fl-id" href="results.html#S4">S4</a></li>
+                    <li data-id="S8"><a class="fl-id" href="results.html#S8">S8</a></li>
+                    <li data-id="S9"><a class="fl-id" href="results.html#S9">S9</a></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="fl-panel" id="flow-revocation" data-flow="revocation" data-tab="Revocation" data-ids="R1">
+              <h3>Revocation</h3>
+              <p class="fl-lede">Deleting a lease takes the grant away on every cluster.</p>
+              <ol class="fl-steps">
+                <li><span class="fl-step"><span>The lease from the activation flow is still active, with a grant for <code>sre-agent</code> on cluster-east and cluster-west.</span></span></li>
+                <li><span class="fl-step"><span>The test deletes the lease on the hub.</span></span></li>
+                <li><span class="fl-step"><span>FleetPermit renders the policy for both clusters again, without the lease's rule, and updates their ManifestWorks.</span></span></li>
+                <li><span class="fl-step"><span><code>sre-agent</code> calls <code>restart_workload</code> on both clusters until each answers DENY. The test times each cluster from the delete to the first DENY.</span></span></li>
+              </ol>
+              <div class="fl-facts">
+                <div class="fl-box fl-tested">
+                  <h4>Tested by</h4>
+                  <ul class="fl-scen">
+                    <li data-id="R1"><a class="fl-id" href="results.html#R1">R1</a></li>
+                  </ul>
+                </div>
+                <div class="fl-box fl-metrics" data-keys="revocationToDenyMs" hidden></div>
+              </div>
+            </div>
+
+            <div class="fl-panel" id="flow-expiry" data-flow="expiry" data-tab="Expiry" data-ids="S5 S13">
+              <h3>Expiry</h3>
+              <p class="fl-lede">The gateway stops honouring a lease at its expiry time.</p>
+              <ol class="fl-steps">
+                <li><span class="fl-step"><span>The test creates two leases for <code>sre-agent</code>: <code>get_cluster_health</code> for 40 seconds and <code>restart_workload</code> for 100 seconds.</span></span></li>
+                <li><span class="fl-step"><span>Each lease becomes its own rule, with its expiry time written into it. Both tools get ALLOW on cluster-west.</span></span></li>
+                <li><span class="fl-step"><span>The test waits until just before the shorter lease expires, then keeps calling <code>get_cluster_health</code>.</span></span></li>
+                <li><span class="fl-step"><span>Once <code>request.time</code> passes the expiry, the rule no longer matches and Envoy answers DENY. The test times the gap from <code>expiresAt</code> to the first DENY.</span></span></li>
+                <li><span class="fl-step"><span><code>restart_workload</code> still gets ALLOW, because its own lease has not expired (S13).</span></span></li>
+                <li><span class="fl-step"><span>The controller then marks the lease Expired and removes its rule. That clean-up is checked in S12.</span></span></li>
+              </ol>
+              <div class="fl-facts">
+                <div class="fl-box fl-tested">
+                  <h4>Tested by</h4>
+                  <ul class="fl-scen">
+                    <li data-id="S5"><a class="fl-id" href="results.html#S5">S5</a></li>
+                    <li data-id="S13"><a class="fl-id" href="results.html#S13">S13</a></li>
+                  </ul>
+                </div>
+                <div class="fl-box fl-metrics" data-keys="expiryToDenyMs" hidden></div>
+              </div>
+            </div>
+
+            <div class="fl-panel" id="flow-hub-down" data-flow="hubdown" data-tab="Hub disconnected" data-ids="S11 S12">
+              <h3>Hub disconnected</h3>
+              <p class="fl-lede">The whole hub is paused before a lease expires. The clusters still deny on time.</p>
+              <ol class="fl-steps">
+                <li><span class="fl-step"><span>The test creates a 50 second lease for <code>restart_workload</code>. cluster-east and cluster-west both answer ALLOW.</span></span></li>
+                <li><span class="fl-step"><span>It pauses the hub node. The hub API, FleetPermit and the hub's etcd all stop. A call to cluster-east still gets ALLOW.</span></span></li>
+                <li><span class="fl-step"><span>At the expiry time both gateways answer DENY. The rendered policy is still on cluster-east, so the DENY comes from the time bound in the rule (S11).</span></span></li>
+                <li><span class="fl-step"><span>The test resumes the hub. FleetPermit marks the lease Expired and withdraws the stale grants from both clusters.</span></span></li>
+                <li><span class="fl-step"><span>Calls stay DENY. The test times the clean-up from the moment the hub resumed (S12).</span></span></li>
+              </ol>
+              <div class="fl-facts">
+                <div class="fl-box fl-tested">
+                  <h4>Tested by</h4>
+                  <ul class="fl-scen">
+                    <li data-id="S11"><a class="fl-id" href="results.html#S11">S11</a></li>
+                    <li data-id="S12"><a class="fl-id" href="results.html#S12">S12</a></li>
+                  </ul>
+                </div>
+                <div class="fl-box fl-metrics" data-keys="expiryToDenyHubDownMs reconnectConvergenceMs" hidden></div>
+              </div>
+            </div>
+
+            <div class="fl-panel" id="flow-placement" data-flow="placement" data-tab="Placement change" data-ids="S7">
+              <h3>Placement change</h3>
+              <p class="fl-lede">When cluster labels change, the grant follows the Placement.</p>
+              <ol class="fl-steps">
+                <li><span class="fl-step"><span>The test creates a 10 minute lease for <code>restart_workload</code>. cluster-west answers ALLOW and cluster-edge answers DENY.</span></span></li>
+                <li><span class="fl-step"><span>It changes the labels on the hub: cluster-west becomes <code>env=staging</code> and cluster-edge becomes <code>env=production</code>.</span></span></li>
+                <li><span class="fl-step"><span>The Placement now selects cluster-east and cluster-edge. FleetPermit delivers the grant to cluster-edge and withdraws it from cluster-west.</span></span></li>
+                <li><span class="fl-step"><span>cluster-west now answers DENY and cluster-edge answers ALLOW. The test times both from the label change.</span></span></li>
+                <li><span class="fl-step"><span>The test then restores the original labels.</span></span></li>
+              </ol>
+              <div class="fl-facts">
+                <div class="fl-box fl-tested">
+                  <h4>Tested by</h4>
+                  <ul class="fl-scen">
+                    <li data-id="S7"><a class="fl-id" href="results.html#S7">S7</a></li>
+                  </ul>
+                </div>
+                <div class="fl-box fl-metrics" data-keys="placementChangeMs" hidden></div>
+              </div>
+            </div>
+
+            <div class="fl-panel" id="flow-drift" data-flow="drift" data-tab="Drift repair" data-ids="S10">
+              <h3>Drift repair</h3>
+              <p class="fl-lede">Someone deletes the delivered policy on a cluster. The backend stays closed until the hub puts it back.</p>
+              <ol class="fl-steps">
+                <li><span class="fl-step"><span>cluster-west holds a rendered XAccessPolicy with an active grant for <code>restart_workload</code>.</span></span></li>
+                <li><span class="fl-step"><span>The test deletes that XAccessPolicy directly on cluster-west, without going through the hub.</span></span></li>
+                <li><span class="fl-step"><span>Once the gateway is updated, the call gets DENY. Only the default-deny anchor is left, so the backend stays closed.</span></span></li>
+                <li><span class="fl-step"><span>At its next status sync, OCM reports the object missing. FleetPermit then asks the work agent to re-apply it at once.</span></span></li>
+                <li><span class="fl-step"><span>The policy is back and the call gets ALLOW again. The test times this from the delete.</span></span></li>
+              </ol>
+              <div class="fl-facts">
+                <div class="fl-box fl-tested">
+                  <h4>Tested by</h4>
+                  <ul class="fl-scen">
+                    <li data-id="S10"><a class="fl-id" href="results.html#S10">S10</a></li>
+                  </ul>
+                </div>
+                <div class="fl-box fl-metrics" data-keys="driftRecoveryMs" hidden></div>
+              </div>
+            </div>
+
+            <div class="fl-panel" id="flow-anchor" data-flow="anchor" data-tab="Default-deny anchor" data-ids="A1">
+              <h3>Default-deny anchor</h3>
+              <p class="fl-lede">Why every backend carries a policy whose only rule never matches.</p>
+              <ol class="fl-steps">
+                <li><span class="fl-step"><span>cluster-edge is not selected, so FleetPermit sends it nothing. The only XAccessPolicy on its backend is the default-deny anchor, whose rule never matches.</span></span></li>
+                <li><span class="fl-step"><span>The test deletes the anchor. Now no XAccessPolicy targets the backend.</span></span></li>
+                <li><span class="fl-step"><span><code>sre-agent</code> calls <code>read_secret</code> on cluster-edge. Upstream enforces nothing on a backend without a policy, so the call gets ALLOW.</span></span></li>
+                <li><span class="fl-step"><span>The test puts the anchor back. The same call gets DENY.</span></span></li>
+              </ol>
+              <div class="fl-facts">
+                <div class="fl-box fl-tested">
+                  <h4>Tested by</h4>
+                  <ul class="fl-scen">
+                    <li data-id="A1"><a class="fl-id" href="results.html#A1">A1</a></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="fl-panel" id="flow-restarts" data-flow="restarts" data-tab="Controller restarts" data-ids="S15">
+              <h3>Controller restarts</h3>
+              <p class="fl-lede">Restarting the controllers does not interrupt an active grant.</p>
+              <ol class="fl-steps">
+                <li><span class="fl-step"><span>An active lease lets <code>sre-agent</code> call <code>restart_workload</code> on cluster-east.</span></span></li>
+                <li><span class="fl-step"><span>The test deletes the FleetPermit controller pod on the hub and makes 20 calls while it comes back.</span></span></li>
+                <li><span class="fl-step"><span>It then restarts the agentic-networking controller on cluster-east and makes 20 more calls.</span></span></li>
+                <li><span class="fl-step"><span>Every call must get ALLOW. Envoy keeps enforcing the rules it already has while the controllers restart.</span></span></li>
+                <li><span class="fl-step"><span>Afterwards a new lease for <code>get_cluster_health</code> gets ALLOW on cluster-east.</span></span></li>
+              </ol>
+              <div class="fl-facts">
+                <div class="fl-box fl-tested">
+                  <h4>Tested by</h4>
+                  <ul class="fl-scen">
+                    <li data-id="S15"><a class="fl-id" href="results.html#S15">S15</a></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section id="lifecycle" aria-labelledby="lifecycle-h">
           <h2 id="lifecycle-h">Lease lifecycle</h2>
           <figure class="figure">
-            <img src="assets/img/lease-lifecycle.svg" width="1200" height="560" alt="ToolAccessLease lifecycle. A new lease is checked against its policy. If WHO, WHAT or HOW LONG fails it becomes Denied, which is terminal, with reasons SubjectNotAllowed, PermissionNotAllowed, DurationExceedsMaximum or PolicyNotFound. Otherwise it is Pending until a requested cluster is placed and has room under the upstream rule limit, and becomes Active once a grant is rendered on a selected cluster, and Envoy allows the leased tools while request.time is before the expiry timestamp. When request.time reaches expiresAt it becomes Expired, also terminal, and the controller withdraws the grant. Deleting an Active lease revokes it on every cluster. expiresAt equals creationTimestamp plus duration, is computed once and is never extended.">
+            <img src="assets/img/lease-lifecycle.svg" width="1200" height="560" alt="ToolAccessLease lifecycle. A new lease is checked against its policy. If WHO, WHAT or HOW LONG fails it becomes Denied, which is terminal, with reasons SubjectNotAllowed, PermissionNotAllowed, DurationExceedsMaximum or PolicyNotFound. Otherwise it is Pending until a requested cluster is placed and has room under the upstream rule limit, and becomes Active once a grant is rendered on a selected cluster, and Envoy allows the leased tools while request.time is before the expiry timestamp. When request.time reaches expiresAt it becomes Expired, also terminal, and the controller withdraws the grant. Deleting an Active lease revokes it on every cluster. expiresAt equals creationTimestamp plus the effective duration; for a lease without spec.duration the default in effect at first evaluation is pinned, and policy changes never extend it.">
           </figure>
-          <p class="prose"><code>expiresAt</code> is the API server's creation time plus the lease duration. It is computed once from immutable inputs and never extended. To change a lease, delete it and create a new one, so every grant is traceable to exactly one request.</p>
+          <p class="prose"><code>expiresAt</code> is the API server's creation time plus the effective duration. For a lease without <code>spec.duration</code>, that is the policy default in effect at the first evaluation, pinned in status; policy changes never extend it. Only the controller should be allowed to write lease status. To change a lease, delete it and create a new one, so every grant is traceable to exactly one request.</p>
         </section>
 
         <section id="no-agent" aria-labelledby="no-agent-h">

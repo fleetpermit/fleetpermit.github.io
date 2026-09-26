@@ -83,7 +83,7 @@
               <caption class="visually-hidden">Requirements on the hub and managed clusters</caption>
               <thead><tr><th scope="col">Where</th><th scope="col">What</th></tr></thead>
               <tbody>
-                <tr><th scope="row">Hub</th><td>Kubernetes 1.30 or later with the Open Cluster Management hub (v1.3 tested): Placement, PlacementDecision and ManifestWork APIs.</td></tr>
+                <tr><th scope="row">Hub</th><td>Kubernetes with the Open Cluster Management hub (v1.3 tested): Placement, PlacementDecision and ManifestWork APIs. Tested on Kubernetes 1.35; the chart accepts 1.30 and later, which is untested.</td></tr>
                 <tr><th scope="row">Each governed managed cluster</th><td>OCM klusterlet; Gateway API; kube-agentic-networking (v0.2.0 tested) with a Gateway; the tool server as an XBackend; workload identities the gateway trusts.</td></tr>
               </tbody>
             </table>
@@ -210,7 +210,7 @@ incident-42   sre-remediation   2          2026-09-26T10:15:00Z   Active   1m</c
               <thead><tr><th scope="col">Status field</th><th scope="col">Meaning</th></tr></thead>
               <tbody>
                 <tr><td><code>phase</code></td><td><code>Pending</code> (no requested cluster is placed yet, or the rule limit is reached on every cluster), <code>Active</code>, <code>Expired</code> or <code>Denied</code>; a summary of the conditions</td></tr>
-                <tr><td><code>expiresAt</code></td><td><code>creationTimestamp + duration</code>, computed once, never extended</td></tr>
+                <tr><td><code>expiresAt</code></td><td><code>creationTimestamp</code> + effective duration. For a lease without <code>spec.duration</code>, that is the policy default in effect at first evaluation, pinned here. Policy changes never extend it</td></tr>
                 <tr><td><code>clusters</code>, <code>clusterCount</code></td><td>Clusters that hold the grant; after expiry or denial, clusters still being revoked</td></tr>
                 <tr><td><code>conditions</code></td><td><code>Ready</code>, <code>Progressing</code>, <code>Degraded</code>, <code>Expired</code>, <code>Denied</code></td></tr>
               </tbody>
@@ -236,7 +236,7 @@ incident-42   sre-remediation   2          2026-09-26T10:15:00Z   Active   1m</c
               </tbody>
             </table>
           </div>
-          <p class="prose">Denied and Expired are terminal. A policy change that removes a lease's tool or subject denies it, and a policy change that would allow a previously denied lease does not revive it. Pending is not terminal.</p>
+          <p class="prose">Denied and Expired are terminal, provided only the controller can write <code>toolaccessleases/status</code>. A policy change that removes a lease's tool or subject denies it, and a policy change that would allow a previously denied lease does not revive it. Pending is not terminal.</p>
           <p class="prose">For a lease without <code>spec.duration</code>, the expiry lives in <code>status.expiresAt</code>. Grant write access to <code>toolaccessleases/status</code> to the controller only: a principal that can write lease status could extend such a lease up to the policy's <code>maxDuration</code>, never beyond it.</p>
         </section>
 

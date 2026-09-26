@@ -1,0 +1,201 @@
+/* "Every flow, animated" on the architecture page (#flows).
+ * The scenes are dark plates in both themes, like the other diagrams on the site.
+ * Everything around them (tabs, steps, results) follows the page theme.
+ * Movement is transform and opacity only; colour changes are short state transitions. */
+
+.fl-legend { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 20px; margin: 0 0 18px; padding: 0; font-size: 0.88rem; color: var(--text-2); }
+.fl-legend li { margin: 0; display: inline-flex; align-items: center; gap: 8px; }
+.fl-sw { flex: none; width: 16px; height: 12px; border-radius: 4px; }
+.fl-sw.allow { background: #0f3b3a; border: 1.5px solid #2dd4bf; }
+.fl-sw.deny { background: #4a1d27; border: 1.5px solid #ff7a7a; }
+.fl-sw.ticket { width: 18px; height: 10px; border-radius: 3px; background: #f5b544; }
+.fl-sw.unplaced { background: transparent; border: 1.5px dashed #7f93b0; }
+
+/* Tabs (built by flows.js) */
+.fl-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 20px; }
+@media (max-width: 699px) {
+  .fl-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fl-tabs > .fl-tab:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+.fl-tab {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 10px;
+  min-height: 52px; padding: 8px 12px; text-align: left; cursor: pointer;
+  border: 1px solid var(--line); border-radius: var(--radius-m); background: var(--surface); color: var(--text);
+  font: 650 0.95rem/1.25 var(--font);
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+.fl-tab:hover { border-color: var(--line-strong); }
+.fl-tn {
+  grid-row: 1 / span 2; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px;
+  border: 1.5px solid var(--line-strong); font: 700 0.8rem/1 var(--mono); color: var(--text-2);
+}
+.fl-tt { min-width: 0; }
+.fl-ti { min-width: 0; font: 500 0.74rem/1.3 var(--mono); color: var(--text-2); overflow-wrap: anywhere; }
+.fl-tab[aria-selected="true"] { border-color: var(--allow); box-shadow: inset 0 0 0 1px var(--allow); background: var(--allow-bg); }
+.fl-tab[aria-selected="true"] .fl-tn { background: var(--allow); border-color: var(--allow); color: var(--bg); }
+@media (max-width: 420px) {
+  .fl-tab { min-height: 46px; font-size: 0.9rem; padding: 7px 10px; column-gap: 8px; }
+  .fl-tn { grid-row: auto; width: 24px; height: 24px; }
+  .fl-ti { display: none; }
+}
+
+/* Panels */
+.fl-panel { min-width: 0; }
+.fl-panel:focus-visible { outline-offset: 6px; }
+.no-js .fl-panel + .fl-panel { margin-top: 44px; }
+.doc-body .fl-panel h3 { margin: 0 0 4px; }
+.fl-lede { margin: 0 0 14px; color: var(--text-2); max-width: 70ch; }
+
+/* Player: scene, caption bar, controls */
+.fl-player { margin: 0 0 14px; }
+.fl-stage { padding: clamp(4px, 1.4vw, 16px) clamp(0px, 1.4vw, 16px); }
+.fl-stage svg { display: block; width: 100%; height: auto; max-width: 820px; margin-inline: auto; }
+.fl-stage.narrow svg { max-width: 460px; }
+.fl-bar { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 12px clamp(12px, 2vw, 20px) 14px; border-top: 1px solid #22344f; background: #0f1e33; }
+.fl-prog { position: absolute; left: 0; right: 0; top: -1px; height: 2px; overflow: hidden; }
+.fl-prog > span { display: block; height: 100%; background: #2dd4bf; transform-origin: 0 50%; transform: scaleX(0); will-change: transform; }
+.fl-reduced .fl-prog { display: none; }
+.fl-cap { flex: 1 1 300px; min-width: 0; margin: 0; color: #e6edf6; font-size: 0.98rem; line-height: 1.5; }
+.fl-count { display: block; margin-bottom: 2px; color: #f5b544; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
+/* Every caption sits in the same grid cell, so the bar keeps the height of the longest one and nothing below it moves. */
+.fl-caps { display: grid; }
+.fl-caps > span { grid-area: 1 / 1; opacity: 0; transition: opacity 260ms ease; }
+.fl-caps > span.on { opacity: 1; }
+.fl-ctl { display: flex; gap: 8px; }
+.fl-note { margin: 0; padding: 12px clamp(12px, 2vw, 20px); border-top: 1px solid #22344f; color: #a9b8cd; font-size: var(--step--1); }
+
+/* Step list (the readable version of every caption) */
+.fl-steps { list-style: none; counter-reset: fls; display: grid; gap: 2px; margin: 0 0 18px; padding: 0; }
+.fl-steps > li { margin: 0; counter-increment: fls; }
+.fl-step {
+  position: relative; display: grid; grid-template-columns: 1.9em minmax(0, 1fr); gap: 8px; width: 100%;
+  margin: 0; padding: 7px 10px; border: 0; border-radius: 8px; background: none; text-align: left;
+  color: var(--text-2); font: 0.96rem/1.5 var(--font);
+}
+button.fl-step { cursor: pointer; }
+.fl-step::before { content: counter(fls); padding-top: 0.12em; font: 700 0.8rem/1.6 var(--mono); color: var(--text-2); }
+button.fl-step:hover { background: var(--bg-2); color: var(--text); }
+.fl-step[aria-current="step"] { background: var(--surface); color: var(--text); box-shadow: inset 3px 0 0 var(--lease), 0 0 0 1px var(--line); }
+.fl-step[aria-current="step"]::before { color: var(--lease); }
+.fl-step.done::before { color: var(--allow); }
+.no-js .fl-step { color: var(--text); }
+
+/* Results and timings */
+.fl-facts { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.fl-facts.has-metrics { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+@media (max-width: 760px) { .fl-facts.has-metrics { grid-template-columns: minmax(0, 1fr); } }
+.fl-box { min-width: 0; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius-m); background: var(--surface); }
+.doc-body .fl-box h4 { margin: 0 0 10px; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-2); }
+.fl-scen { list-style: none; display: grid; gap: 12px; margin: 0; padding: 0; }
+.fl-scen > li { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.fl-id { font: 700 0.95rem/1.3 var(--mono); }
+.fl-name { flex: 1 1 14em; min-width: 0; font-size: 0.93rem; }
+.fl-obs { flex: 1 1 100%; min-width: 0; font: 0.8rem/1.45 var(--mono); color: var(--text-2); overflow-wrap: anywhere; }
+.fl-obs .fl-k { font-family: var(--font); font-weight: 650; }
+.fl-nodata { margin: 10px 0 0; font-size: 0.88rem; color: var(--text-2); }
+.fl-m + .fl-m { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.fl-m p { margin: 0; }
+.fl-ml { font-size: 0.92rem; font-weight: 650; }
+.fl-mv { margin-top: 4px !important; }
+.fl-big { display: inline-flex; align-items: baseline; gap: 8px; }
+.fl-big b { font-size: 1.7rem; font-weight: 800; letter-spacing: -0.01em; color: var(--allow); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.fl-big small { font-size: 0.85rem; color: var(--text-2); }
+.fl-mx { display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 0.88rem; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.fl-mx b { color: var(--text); }
+.fl-ms { margin-top: 2px !important; font-size: 0.8rem; color: var(--text-2); }
+.fl-mnote { margin: 12px 0 0 !important; font-size: 0.8rem; color: var(--text-2); }
+
+/* ---------- SVG scene ---------- */
+.fl-svg { font-family: var(--font); }
+.fl-svg text { fill: #e6edf6; font-size: 11.5px; }
+.fl-svg .mono { font-family: var(--mono); }
+.fl-svg .tiny { font-size: 10.5px; }
+.fl-svg .dim { fill: #a9b8cd; }
+.fl-svg .dimmer { fill: #7f93b0; }
+.fl-svg .box { fill: #13233a; stroke: #2e4468; stroke-width: 1.5; transition: stroke 350ms ease, fill 350ms ease; }
+.fl-svg .fade { transition: opacity 320ms ease; }
+.fl-svg .off { opacity: 0; }
+
+.fl-svg .wire { fill: none; stroke: #2e4468; stroke-width: 2; transition: stroke 350ms ease, opacity 350ms ease; }
+.fl-svg .wire.on { stroke: #2dd4bf; }
+.fl-svg .wire.none { stroke-dasharray: 3 7; opacity: 0.55; }
+.fl-svg .wire.cut { stroke: #5b6f8c; stroke-dasharray: 3 7; opacity: 0.7; }
+.fl-svg .wire.call { stroke-dasharray: 2 6; }
+.fl-svg .wire.call.on { stroke: #f5b544; }
+
+.fl-svg .hub { transition: opacity 450ms ease; }
+.fl-svg .hub.paused { opacity: 0.4; }
+.fl-svg .hub.hot > .box { stroke: #2dd4bf; stroke-width: 2; }
+.fl-svg .ctrl { font-size: 13px; font-weight: 700; fill: #2dd4bf; transition: opacity 300ms ease; }
+.fl-svg .hub.restarting .ctrl { opacity: 0.4; }
+.fl-svg .st { font-size: 11.5px; }
+.fl-svg .st.dim { fill: #a9b8cd; }
+.fl-svg .st.teal { fill: #2dd4bf; }
+.fl-svg .st.coral { fill: #ff9a9a; }
+.fl-svg .st.amber { fill: #f5b544; }
+.fl-svg .badge rect { fill: #3f2e0b; stroke: #f5b544; stroke-width: 1.2; }
+.fl-svg .badge text { fill: #f5b544; font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; }
+
+.fl-svg .chip rect { fill: #1a2a44; stroke: #f5b544; stroke-width: 1.4; transition: stroke 300ms ease; }
+.fl-svg .chip.coral rect { stroke: #ff7a7a; stroke-dasharray: 5 4; }
+.fl-svg .chip.ghost rect { fill: none; stroke: #3a5378; stroke-dasharray: 5 4; }
+.fl-svg .chip-t1 { font-size: 11px; font-weight: 700; fill: #f5b544; }
+.fl-svg .chip-t1.sm { font-size: 10px; }
+.fl-svg .chip.ghost .chip-t1 { fill: #a9b8cd; font-weight: 600; }
+.fl-svg .chip-t2 { font-size: 10.5px; fill: #a9b8cd; }
+.fl-svg .chip.teal .ph { fill: #2dd4bf; font-weight: 700; }
+.fl-svg .chip.coral .ph { fill: #ff9a9a; font-weight: 700; }
+.fl-svg .chip.amber .ph { fill: #f5b544; font-weight: 700; }
+.fl-svg .ring-bg { fill: none; stroke: #2e4468; stroke-width: 3.5; transition: stroke 300ms ease; }
+.fl-svg .ringg.out .ring-bg { stroke: #ff7a7a; }
+.fl-svg .ring { fill: none; stroke: #f5b544; stroke-width: 3.5; stroke-linecap: round; }
+
+.fl-svg .cname { font-size: 12px; font-weight: 700; }
+.fl-svg .cl.placed > .box { stroke: #2dd4bf; stroke-width: 2; }
+.fl-svg .cl.unplaced > .box { fill: #0f1e33; stroke: #5b6f8c; stroke-dasharray: 6 5; }
+.fl-svg .cl.unplaced .cname { fill: #a9b8cd; }
+.fl-svg .cl.hot > .box { stroke: #f5b544; stroke-width: 2.2; }
+.fl-svg .env { font-size: 10.5px; fill: #a9b8cd; }
+.fl-svg .env.amber { fill: #f5b544; font-weight: 700; }
+.fl-svg .slot rect { fill: #0f1e33; stroke: #2e4468; transition: fill 300ms ease, stroke 300ms ease; }
+.fl-svg .slot text { font-size: 10.5px; fill: #a9b8cd; }
+.fl-svg .slot.teal rect { fill: #0f3b3a; stroke: #2dd4bf; }
+.fl-svg .slot.teal text { fill: #5eead4; font-weight: 650; }
+.fl-svg .slot.coral rect { fill: #4a1d27; stroke: #ff7a7a; }
+.fl-svg .slot.coral text { fill: #ff9a9a; font-weight: 650; }
+.fl-svg .slot.amber rect { fill: #3f2e0b; stroke: #f5b544; }
+.fl-svg .slot.amber text { fill: #f5b544; font-weight: 650; }
+.fl-svg .gw-idle rect { fill: #0f1e33; stroke: #2e4468; }
+.fl-svg .gw-idle text { fill: #a9b8cd; font-size: 11px; }
+.fl-svg .gw-allow rect { fill: #0f3b3a; stroke: #2dd4bf; stroke-width: 1.5; }
+.fl-svg .gw-allow text { fill: #2dd4bf; font-size: 12px; font-weight: 800; letter-spacing: 0.05em; }
+.fl-svg .gw-deny rect { fill: #4a1d27; stroke: #ff7a7a; stroke-width: 1.5; }
+.fl-svg .gw-deny text { fill: #ff7a7a; font-size: 12px; font-weight: 800; letter-spacing: 0.05em; }
+.fl-svg .pulse { fill: none; stroke-width: 2; }
+.fl-svg .pulse.allow { stroke: #2dd4bf; }
+.fl-svg .pulse.deny { stroke: #ff7a7a; }
+.fl-svg .last { font-size: 10px; paint-order: stroke; stroke: #0c1728; stroke-width: 4px; stroke-linejoin: round; }
+.fl-svg .last.allow { fill: #2dd4bf; }
+.fl-svg .last.deny { fill: #ff9a9a; }
+
+.fl-svg .aname { font-size: 13px; font-weight: 700; fill: #f5b544; }
+.fl-svg .agent.sec .aname { fill: #cbd5e1; }
+.fl-svg .agent.hot > .box { stroke: #f5b544; stroke-width: 2; }
+.fl-svg .meas rect { fill: #0f1e33; stroke: #2dd4bf; stroke-dasharray: 4 4; }
+.fl-svg .mval { font-size: 13px; font-weight: 800; fill: #2dd4bf; }
+
+.fl-svg .tk-grant { fill: #f5b544; }
+.fl-svg .tk-withdraw { fill: #ff7a7a; }
+.fl-svg .tk-perf { stroke: #0c1728; stroke-width: 1.6; stroke-dasharray: 1.6 1.4; }
+.fl-svg .call rect { fill: #1b3050; stroke: #f5b544; stroke-width: 1.5; }
+.fl-svg .call.sec rect { stroke: #cbd5e1; }
+.fl-svg .call text { font-size: 10px; }
+
+.fl-svg .spin-bg { fill: none; stroke: #2e4468; stroke-width: 2; }
+.fl-svg .spin { fill: none; stroke: #f5b544; stroke-width: 2; stroke-linecap: round; transform-box: fill-box; transform-origin: center; animation: fl-spin 900ms linear infinite; }
+@keyframes fl-spin { to { transform: rotate(360deg); } }
+.fl-paused .fl-svg .spin, .fl-svg .off .spin { animation-play-state: paused; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fl-svg *, .fl-caps > span, .fl-tab { transition: none !important; animation: none !important; }
+}

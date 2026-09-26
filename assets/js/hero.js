@@ -201,7 +201,9 @@
     var el2 = document.getElementById('fx-pill-text');
     var sm = data && data.e2e && data.e2e.summary;
     if (!el2 || !sm || !num(sm.passed) || !num(sm.total)) return;
-    el2.textContent = 'v0.1.0 · ' + sm.passed + '/' + sm.total + ' lab scenarios passed';
+    var env = data.e2e.environment;
+    var commit = env && typeof env.fleetpermitCommit === 'string' ? env.fleetpermitCommit : '';
+    el2.textContent = sm.passed + '/' + sm.total + ' lab scenarios passed' + (commit ? ' · commit ' + commit : '');
   }
   function renderNumbers(data) {
     var ul = document.getElementById('fx-numbers');

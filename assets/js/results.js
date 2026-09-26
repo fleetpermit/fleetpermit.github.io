@@ -9,7 +9,7 @@
   if (!preview && !root && !answerStats) return;
 
   var DATA_URL = 'data/results.json';
-  var DISCLAIMER = 'Local kind clusters on one development host. Not a production benchmark.';
+  var DISCLAIMER = 'Measured on local kind clusters on one development host, except the GitHub-hosted reproduction and the envtest scale simulation. Not a production benchmark.';
 
   /* Minimal DOM builder; all JSON strings go through textContent. */
   function h(tag, attrs, children) {

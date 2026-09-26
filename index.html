@@ -21,9 +21,9 @@
 <script src="assets/js/site.js?v=9cbeaed696" defer></script>
 <link rel="stylesheet" href="assets/css/hero.css?v=fa4319c11d">
 <link rel="stylesheet" href="assets/css/agents.css?v=9dca5593b2">
-<script src="assets/js/hero.js?v=5190088c8a" defer></script>
+<script src="assets/js/hero.js?v=8896fb90c7" defer></script>
 <script src="assets/js/architecture-player.js?v=5f2818ca07" defer></script>
-<script src="assets/js/results.js?v=2a0485dc6f" defer></script>
+<script src="assets/js/results.js?v=3a1d280432" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -239,7 +239,7 @@
               <text x="748" y="106" font-size="12.5" class="dim">subjects: sre-agent</text>
               <text x="748" y="125" font-size="12.5" class="dim">tools: get_cluster_health,</text>
               <text x="748" y="143" font-size="12.5" class="dim">restart_workload, scale_workload</text>
-              <text x="748" y="162" font-size="12.5" class="dim">maxDuration: 1h</text>
+              <text x="748" y="162" font-size="12.5" class="dim">maxDuration: 30m</text>
               <text x="748" y="180" font-size="12.5" class="dim">failMode: Closed</text>
             </g>
 
@@ -371,7 +371,7 @@
         </div>
         <div class="why-item">
           <h3>Errors never add authority</h3>
-          <p>A missing Placement, a render error or a deleted policy withdraws grants. With the hub unreachable, nothing new is granted and delivered leases still expire on time. <code>failMode</code> accepts only <code>Closed</code>. A backend with no grant is closed when the default-deny anchor is installed, because upstream enforces nothing on a backend without any XAccessPolicy.</p>
+          <p>With the default-deny anchor installed, a missing Placement, a render error or a deleted policy withdraws grants, and nothing else changes. With the hub unreachable, nothing new is granted and delivered leases still expire on time. <code>failMode</code> accepts only <code>Closed</code>. The anchor matters because upstream enforces nothing on a backend without any XAccessPolicy; on clusters FleetPermit selects, its inert policy also denies.</p>
         </div>
       </div>
     </div>
@@ -399,7 +399,7 @@
         <li>
           <div>
             <h3>Check WHO, WHAT, HOW LONG and WHERE</h3>
-            <p>The controller confirms the subject is in the policy, the tools are a subset of its permissions, the duration is within <code>maxDuration</code>, and reads the clusters from the OCM PlacementDecision. A failed check marks the lease Denied, which is terminal.</p>
+            <p>The controller confirms the subject is in the policy, the tools are a subset of its permissions, the duration is within <code>maxDuration</code>, and reads the clusters from the OCM PlacementDecision. A failed subject, tool or duration check marks the lease Denied, which is terminal. A lease whose clusters are not placed waits in Pending.</p>
           </div>
         </li>
         <li>
@@ -411,10 +411,14 @@
         <li>
           <div>
             <h3>Enforce and expire</h3>
-            <p>The kube-agentic-networking controller programs the Envoy gateway. Envoy checks identity, tool and time on every call, so at expiry it denies by itself, even if the hub is unreachable. The controller then withdraws the grant, leaving an inert policy that allows nothing.</p>
+            <p>The kube-agentic-networking controller programs the Envoy gateway. Envoy checks identity, tool and time on every call, so at expiry it denies by itself, even if the hub is unreachable. The controller then withdraws the grant. If no other grant remains on that cluster, an inert policy that allows nothing stays in place.</p>
           </div>
         </li>
       </ol>
+      <div class="callout allow" style="margin:24px 0 0">
+        <strong>Every flow, animated</strong>
+        <p>Nine short animations follow the end-to-end tests step by step: activation, refused requests, revocation, expiry, a paused hub, a placement change, drift repair, the default-deny anchor and controller restarts. <a href="architecture.html#flows">Watch every flow</a></p>
+      </div>
       <p style="margin-top:24px"><a href="architecture.html">Read the architecture in detail</a></p>
     </div>
   </section>
@@ -453,7 +457,7 @@
   <span class="tok-k">lease</span>:
     <span class="tok-k">required</span>: true
     <span class="tok-k">defaultDuration</span>: 15m
-    <span class="tok-k">maxDuration</span>: 1h
+    <span class="tok-k">maxDuration</span>: 30m
   <span class="tok-k">enforcement</span>:
     <span class="tok-k">provider</span>: kubernetes-agentic-networking
     <span class="tok-k">failMode</span>: Closed</code></pre>
@@ -534,7 +538,7 @@ incident-42   sre-remediation   2          2026-09-26T10:15:00Z   Active   1m</c
             <tr><th scope="row">Identity from the platform</th><td>Agents present SPIFFE X.509 certificates issued by Kubernetes Pod Certificates; the gateway authenticates them over mTLS.</td></tr>
             <tr><th scope="row">Only narrowing, never widening</th><td>A lease activates a subset of the policy's tools, for at most <code>maxDuration</code>, on at most the placement's clusters.</td></tr>
             <tr><th scope="row">Narrow controller RBAC</th><td>On the hub, the controller reads placement and writes ManifestWork. It cannot read Secrets or create pods, RBAC or namespaces. The OCM work agent applies whatever a ManifestWork carries, so the controller's ServiceAccount is still a privileged credential; <code>--work-executor</code> makes the work agent apply FleetPermit's content as a restricted managed-cluster identity.</td></tr>
-            <tr><th scope="row">Errors never add authority</th><td>Render errors or a missing Placement withdraw grants, and lease grants expire on time. Denied and Expired leases are terminal. <code>failMode</code> accepts only <code>Closed</code>.</td></tr>
+            <tr><th scope="row">Errors never add authority</th><td>With the default-deny anchor installed, render errors or a missing Placement withdraw grants, and lease grants expire on time. Denied and Expired leases are terminal. <code>failMode</code> accepts only <code>Closed</code>.</td></tr>
             <tr><th scope="row">Traceable content</th><td>Each rendered object carries a SHA-256 content digest and source annotations. Drifted objects are restored from the hub.</td></tr>
           </tbody>
         </table>
@@ -572,7 +576,7 @@ incident-42   sre-remediation   2          2026-09-26T10:15:00Z   Active   1m</c
         <li><span class="name">SPIFFE</span><span class="role">Workload identities for agents</span><span class="status">CNCF Graduated</span></li>
         <li><span class="name">Model Context Protocol</span><span class="role">The agent-to-tool protocol</span><span class="status">Linux Foundation, Agentic AI Foundation</span></li>
         <li><span class="name">Prometheus</span><span class="role">Controller metrics</span><span class="status">CNCF Graduated</span></li>
-        <li><span class="name">OpenTelemetry</span><span class="role">Optional OTLP tracing</span><span class="status">CNCF Incubating</span></li>
+        <li><span class="name">OpenTelemetry</span><span class="role">Optional OTLP tracing</span><span class="status">CNCF Graduated</span></li>
         <li><span class="name">Helm</span><span class="role">Installs the controller on the hub</span><span class="status">CNCF Graduated</span></li>
         <li><span class="name">MetalLB</span><span class="role">Gateway addresses in the local lab only</span><span class="status">CNCF Sandbox</span></li>
       </ul>

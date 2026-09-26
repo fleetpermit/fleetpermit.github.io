@@ -93,7 +93,7 @@
               <li>Decisions happen in pull requests by lazy consensus. Changes to the API, the security model or the dependency policy need an issue or design document first and approval from a majority of maintainers.</li>
               <li>New maintainers are nominated by a maintainer after sustained contributions and approved by a majority. The project aims for maintainers from more than one organisation as it grows.</li>
             </ul>
-            <p>Three principles every change must respect: vendor neutrality, errors that never add authority, and claims backed by tests or measurements. Read the full <a href="https://github.com/fleetpermit/fleetpermit/blob/main/GOVERNANCE.md">GOVERNANCE.md</a>.</p>
+            <p>Three principles every change must respect: vendor neutrality, errors that never add authority (with the default-deny anchor installed), and claims backed by tests or measurements. Read the full <a href="https://github.com/fleetpermit/fleetpermit/blob/main/GOVERNANCE.md">GOVERNANCE.md</a>.</p>
           </div>
         </section>
 
@@ -111,7 +111,7 @@
 
         <section id="roadmap" aria-labelledby="roadmap-h">
           <h2 id="roadmap-h">Roadmap</h2>
-          <p class="prose">v0.1 is a complete release for one placement provider, one enforcement provider and one protocol. The enhancements below follow user feedback and upstream progress.</p>
+          <p class="prose">v0.1 supports one placement provider (Open Cluster Management), one enforcement provider (kube-agentic-networking) and one protocol (MCP). The first list shows what it includes. The enhancements below follow user feedback and upstream progress.</p>
           <h3>In v0.1</h3>
           <ul class="roadmap">
             <li><span class="pill pill-pass">Done</span><span>FleetAccessPolicy and ToolAccessLease APIs (<code>v1alpha1</code>) with strict validation</span></li>
