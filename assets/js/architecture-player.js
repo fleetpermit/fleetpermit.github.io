@@ -161,7 +161,7 @@
     grant('west', gstate);
 
     // Lease status.
-    var status = 'Status: Pending';
+    var status = 'Status: new';          // no phase yet: the controller is still checking it
     if (delivered) status = 'Status: Active';
     if (leaseExpired) status = 'Status: Expired';
     text(el['lease-status'], status);
@@ -263,6 +263,7 @@
   }
   function syncScrollRegion() {
     if (!stage) return;
+    player.classList.toggle('is-scrollable', scrollable());
     if (scrollable()) {
       stage.setAttribute('tabindex', '0');
       stage.setAttribute('role', 'region');
@@ -350,6 +351,7 @@
   }
 
   toggle.addEventListener('click', function () {
+    captionBox.setAttribute('aria-live', 'off');
     followOn = true;
     if (t >= TOTAL) t = 0;
     playing = !playing;
@@ -357,6 +359,7 @@
     update();
   });
   replay.addEventListener('click', function () {
+    captionBox.setAttribute('aria-live', 'off');
     followOn = true;
     lastFocus = -1;
     t = 0;

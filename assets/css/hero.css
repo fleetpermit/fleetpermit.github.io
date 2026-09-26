@@ -178,8 +178,8 @@
 .burst.outX.d0 { animation-delay: -0.3s; }
 .burst.outX.d1 { animation-delay: -1.5s; }
 .ftick-ok { display: grid; place-items: center; border-radius: 50%; background: #2dd4bf; color: #06201d; font: 900 clamp(10px, 2.4cqw, 11px)/1 var(--font); opacity: 0; animation: fl-tick 1.2s ease-out infinite; }
-.ftick-ok.e { left:67.3611cqw;top:6.2500cqw;width:4.1667cqw;height:4.1667cqw; }
-.ftick-ok.w { left:67.3611cqw;top:27.3611cqw;width:4.1667cqw;height:4.1667cqw; animation-delay: -0.6s; }
+.ftick-ok.e { left:65.8611cqw;top:6.2500cqw;width:4.1667cqw;height:4.1667cqw; }
+.ftick-ok.w { left:65.8611cqw;top:27.3611cqw;width:4.1667cqw;height:4.1667cqw; animation-delay: -0.6s; }
 @keyframes fl-tick { 0% { transform: scale(1.2); opacity: 1; } 35% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(0.9); opacity: 0; } }
 .fglow { left:38.8889cqw;top:22.2222cqw;width:22.2222cqw;height:22.2222cqw; border-radius: 50%; background: radial-gradient(closest-side, rgba(45, 212, 191, 0.5), rgba(45, 212, 191, 0)); animation: fl-breathe 2.4s ease-in-out infinite; }
 @keyframes fl-breathe { 0%, 100% { transform: scale(0.9); opacity: 0.55; } 50% { transform: scale(1.08); opacity: 1; } }
@@ -268,6 +268,11 @@
   .chip { padding: 0 1.4cqw; }
   .chip .what { letter-spacing: -0.03em; }
 }
+/* Very small phones: the tool name is cut with an ellipsis rather than hidden, so the two
+ * sre-agent requests stay distinguishable. */
 @media (max-width: 380px) {
-  .chip .what { display: none; }
+  .chip .what { overflow: hidden; text-overflow: ellipsis; }
 }
+
+/* The pause control is a toggle: its label stays "Pause motion" and aria-pressed carries the state. */
+.fx-pause[aria-pressed="true"] { border-color: #f5b544; background: rgba(245, 181, 68, 0.12); }

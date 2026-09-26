@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0c1728">
 <link rel="icon" href="assets/img/logo-mark.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/img/avatar-512.png">
-<link rel="stylesheet" href="assets/css/site.css?v=85ea29d818">
+<link rel="stylesheet" href="assets/css/site.css?v=dd57e0b890">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="FleetPermit">
 <meta property="og:title" content="Documentation | FleetPermit">
@@ -18,7 +18,7 @@
 <meta property="og:image" content="https://fleetpermit.github.io/assets/img/social-preview.png">
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){var d=document.documentElement,t='dark';d.className=d.className.replace('no-js','js');try{var s=localStorage.getItem('fp-theme');if(s==='light'||s==='dark')t=s;}catch(e){}d.setAttribute('data-theme',t);})();</script>
-<script src="assets/js/site.js?v=106244e587" defer></script>
+<script src="assets/js/site.js?v=cc30a89c8a" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -108,10 +108,11 @@
 
         <section id="install" aria-labelledby="install-h">
           <h2 id="install-h">Install on a real fleet</h2>
-          <p class="prose">Install the controller on the OCM hub:</p>
+          <p class="prose">Install from a release: check out the release tag in a clone of the repository and use <code>charts/fleetpermit</code>, or download the signed chart attached to the release and <a href="https://github.com/fleetpermit/fleetpermit/blob/main/docs/operations.md#verifying-releases">verify it</a> first. Then install the controller on the OCM hub:</p>
           <div class="code-block" data-commands-only>
-            <div class="code-title" data-label="hub install command">on the OCM hub</div>
-            <pre><code><span class="tok-p">$ </span>helm install fleetpermit charts/fleetpermit -n fleetpermit-system --create-namespace</code></pre>
+            <div class="code-title" data-label="hub install commands">on the OCM hub</div>
+            <pre><code><span class="tok-p">$ </span>git checkout v0.1.1
+<span class="tok-p">$ </span>helm install fleetpermit charts/fleetpermit -n fleetpermit-system --create-namespace</code></pre>
           </div>
           <p class="prose">Then, on every managed cluster that runs a governed tool server, add XAccessPolicy permissions to the OCM work agent and close the backend by default:</p>
           <div class="code-block" data-commands-only>
@@ -121,7 +122,8 @@
           </div>
           <div class="callout">
             <strong>Install the anchor on every cluster that runs the backend.</strong>
-            <p>That includes clusters no placement selects today. Upstream enforces nothing on a target with no XAccessPolicy, so without the anchor the backend is open. Edit the namespace and backend name in <code>default-deny-anchor.yaml</code> to match your tool server.</p>
+            <p>That includes clusters no placement selects today. Upstream enforces nothing on a target with no XAccessPolicy, so without the anchor the backend is open.</p>
+            <p>Edit the namespace and <code>targetRefs</code> in <code>default-deny-anchor.yaml</code> to match your policies' <code>spec.target</code>: the anchor must target the same resource as the policies. For policies that target a Gateway, point <code>targetRefs</code> at that Gateway (group <code>gateway.networking.k8s.io</code>, kind <code>Gateway</code>). Upstream checks gateway-level and backend-level policies separately and both must allow a call, so an XBackend anchor next to Gateway-level grants would deny every call. The lab tests XBackend targets only.</p>
           </div>
         </section>
 
@@ -187,7 +189,7 @@ incident-42   sre-remediation   2          2026-09-26T10:15:00Z   Active   1m</c
         <section id="api" aria-labelledby="api-h">
           <h2 id="api-h">API reference</h2>
           <p class="prose">API group <code>fleetpermit.github.io</code>, version <code>v1alpha1</code>. Both kinds are namespaced: a lease references a policy in its own namespace, and a policy references an OCM Placement in its own namespace.</p>
-          <p class="prose">Validation happens in two places. The API server enforces the OpenAPI schema and CEL rules: field patterns and lengths, list sizes and uniqueness, enums, duration limits and lease immutability. The controller checks what depends on another object when it evaluates a lease: the policy exists, the subject is in the policy, the tools are a subset of its permissions, the duration is at most <code>maxDuration</code>, and the requested clusters are placed. A lease that fails a controller check is stored and marked <code>Denied</code>, or <code>Pending</code> for the placement check. The tables say which side enforces each rule.</p>
+          <p class="prose">Validation happens in two places. The API server enforces the OpenAPI schema and CEL rules: field patterns and lengths, list sizes and uniqueness, enums, duration limits and lease immutability. The controller checks what depends on another object when it evaluates a lease: the policy exists, the subject is in the policy, the tools are a subset of its permissions, the duration is at most <code>maxDuration</code>, and the requested clusters are placed. A lease that fails a controller check is stored and marked <code>Denied</code>, or <code>Pending</code> for the placement check and, for up to 5 minutes after creation, for a policy that does not exist yet. The tables say which side enforces each rule.</p>
 
           <h3 id="api-policy">FleetAccessPolicy <span class="muted small">(short name <code>fap</code>)</span></h3>
           <p class="prose">The ceiling: the most authority any lease may activate.</p>
@@ -202,18 +204,37 @@ incident-42   sre-remediation   2          2026-09-26T10:15:00Z   Active   1m</c
                 <tr><td><code>spec.target.protocol</code></td><td><code>MCP</code></td><td>API server: only <code>MCP</code></td></tr>
                 <tr><td><code>spec.target.namespace</code></td><td>required</td><td>Namespace of the target on each managed cluster. API server: a DNS label</td></tr>
                 <tr><td><code>spec.target.ref.kind</code></td><td><code>XBackend</code></td><td>API server: <code>XBackend</code> in <code>agentic.networking.x-k8s.io</code>, or <code>Gateway</code> in <code>gateway.networking.k8s.io</code></td></tr>
-                <tr><td><code>spec.target.ref.group</code></td><td><code>agentic.networking.x-k8s.io</code></td><td>API server: or <code>gateway.networking.k8s.io</code></td></tr>
+                <tr><td><code>spec.target.ref.group</code></td><td>follows the kind</td><td>When unset: <code>gateway.networking.k8s.io</code> for a Gateway, <code>agentic.networking.x-k8s.io</code> for an XBackend. API server: one of those two</td></tr>
                 <tr><td><code>spec.target.ref.name</code></td><td>required</td><td>The backend or gateway name</td></tr>
                 <tr><td><code>spec.permissions[].tool</code></td><td>required</td><td>API server: 1 to 16 unique MCP tool names, pattern <code>^[A-Za-z0-9][A-Za-z0-9_.-]*$</code>, at most 20 characters. Re-checked by the renderer</td></tr>
                 <tr><td><code>spec.lease.required</code></td><td><code>true</code></td><td><code>false</code> grants every permission to every subject without a lease (standing access)</td></tr>
-                <tr><td><code>spec.lease.defaultDuration</code></td><td><code>15m</code></td><td>Used when a lease omits <code>duration</code>. API server: at least <code>10s</code>, at most <code>maxDuration</code></td></tr>
-                <tr><td><code>spec.lease.maxDuration</code></td><td><code>1h</code></td><td>API server: at most <code>24h</code></td></tr>
+                <tr><td><code>spec.lease.defaultDuration</code></td><td><code>15m</code>, or <code>maxDuration</code> if shorter</td><td>Used when a lease omits <code>duration</code>. The field has no stored default: when it is unset, the controller uses <code>15m</code>, or <code>maxDuration</code> if that is shorter. API server: at least <code>10s</code>, at most <code>maxDuration</code></td></tr>
+                <tr><td><code>spec.lease.maxDuration</code></td><td><code>1h</code></td><td>API server: at most <code>24h</code>. A policy without a <code>lease</code> block gets <code>required: true</code>, <code>defaultDuration: 15m</code> and <code>maxDuration: 1h</code></td></tr>
                 <tr><td><code>spec.enforcement.provider</code></td><td><code>kubernetes-agentic-networking</code></td><td>API server: only value</td></tr>
                 <tr><td><code>spec.enforcement.failMode</code></td><td><code>Closed</code></td><td>API server: only value; an open mode is intentionally not offered</td></tr>
               </tbody>
             </table>
           </div>
-          <p class="prose">Status reports <code>Ready</code>, <code>Progressing</code> and <code>Degraded</code> conditions, <code>clusterSummary</code> such as <code>2/2</code>, <code>activeLeases</code>, and one entry per selected cluster with its reason and content digest. A cluster that left the placement stays listed as <code>Revoking</code> until its ManifestWork is gone, and a cluster is Ready only when OCM's status feedback reports the current content digest. The list holds at most 512 entries, with clusters that are not ready first.</p>
+          <p class="prose">Status reports <code>Ready</code>, <code>Progressing</code> and <code>Degraded</code> conditions, <code>clusterSummary</code> such as <code>2/2</code>, <code>activeLeases</code>, and one entry per selected cluster with its reason and content digest. A cluster that left the placement stays listed as <code>Revoking</code> until its ManifestWork is gone, and a cluster is Ready only when OCM's status feedback reports the current content digest. The list is sorted by cluster name and holds at most 512 entries; beyond that, clusters that are not ready are listed first, the counts stay exact, and the <code>Ready</code> message says how many clusters are listed.</p>
+          <div class="table-wrap">
+            <table class="data-table">
+              <caption class="visually-hidden">Per-cluster reasons in FleetAccessPolicy status</caption>
+              <thead><tr><th scope="col">Cluster reason</th><th scope="col">Ready</th><th scope="col">Meaning</th></tr></thead>
+              <tbody>
+                <tr><td><code>Enforced</code></td><td>yes</td><td>The work agent applied the current content, the enforcement controller accepted it, and OCM's status feedback reports the current content digest</td></tr>
+                <tr><td><code>Delivering</code></td><td>no</td><td>The ManifestWork does not exist yet, or the cluster was placed again while its previous ManifestWork is still being deleted; delivery resumes once that deletion completes</td></tr>
+                <tr><td><code>Updating</code></td><td>no</td><td>The cluster still holds a previous revision</td></tr>
+                <tr><td><code>Applying</code></td><td>no</td><td>The work agent has not applied the current ManifestWork generation</td></tr>
+                <tr><td><code>AwaitingAcceptance</code></td><td>no</td><td>The enforcement controller has not accepted the object yet, or OCM's status feedback has not reported the current content digest</td></tr>
+                <tr><td><code>Drifted</code></td><td>no</td><td>The delivered object was deleted or changed on the cluster; FleetPermit has asked OCM to re-apply it</td></tr>
+                <tr><td><code>Revoking</code></td><td>no</td><td>The cluster left the placement, or the placement was deleted, and its ManifestWork still exists or is being deleted. The withdrawal completes only when the work agent has removed the content; while the cluster is offline, it is reported <code>ClusterUnavailable</code> instead</td></tr>
+                <tr><td><code>DeliveryFailed</code></td><td>no</td><td>Rendering failed, the hub rejected the ManifestWork, or another policy owns a ManifestWork with the same name</td></tr>
+                <tr><td><code>ApplyFailed</code></td><td>no</td><td>The work agent could not apply the ManifestWork</td></tr>
+                <tr><td><code>RejectedByEnforcement</code></td><td>no</td><td>The enforcement controller rejected the object</td></tr>
+                <tr><td><code>ClusterUnavailable</code></td><td>no</td><td>OCM reports the ManagedCluster unavailable, so the status may be stale. A withdrawal from, or a re-placement onto, an offline cluster also shows this reason and waits for the cluster to reconnect; the policy is then <code>Degraded</code> with <code>ClustersFailed</code></td></tr>
+              </tbody>
+            </table>
+          </div>
 
           <h3 id="api-lease">ToolAccessLease <span class="muted small">(short name <code>tal</code>)</span></h3>
           <p class="prose">Activates a subset of a policy for a bounded time. The spec is immutable: the API server rejects any change after creation.</p>
@@ -222,7 +243,7 @@ incident-42   sre-remediation   2          2026-09-26T10:15:00Z   Active   1m</c
               <caption class="visually-hidden">ToolAccessLease spec fields</caption>
               <thead><tr><th scope="col">Field</th><th scope="col">Default</th><th scope="col">Meaning and validation</th></tr></thead>
               <tbody>
-                <tr><td><code>spec.policyRef.name</code></td><td>required</td><td>A FleetAccessPolicy in the same namespace. Controller: a lease created before its policy waits in <code>Pending</code> and activates when the policy appears; a lease whose policy is deleted after it was evaluated is <code>Denied</code></td></tr>
+                <tr><td><code>spec.policyRef.name</code></td><td>required</td><td>A FleetAccessPolicy in the same namespace. Controller: a lease created before its policy waits in <code>Pending</code> (<code>PolicyNotFound</code>) for up to 5 minutes after it was created, and activates if the policy appears in that time. After that it is <code>Denied</code> (<code>PolicyNotFound</code>), which is terminal, or <code>Expired</code> if its <code>spec.duration</code> ends first. A lease whose policy is deleted after it was evaluated is <code>Denied</code>, or <code>Expired</code> if it was already past its recorded expiry</td></tr>
                 <tr><td><code>spec.subject.spiffeID</code></td><td>required</td><td>API server: SPIFFE ID pattern. Controller: must be one of the policy's subjects</td></tr>
                 <tr><td><code>spec.permissions[].tool</code></td><td>required</td><td>API server: 1 to 16 unique tools. Controller: must be a subset of the policy's permissions</td></tr>
                 <tr><td><code>spec.duration</code></td><td>policy <code>defaultDuration</code></td><td>API server: at least <code>10s</code>. Controller: at most the policy's <code>maxDuration</code>. When omitted, the default at first evaluation is pinned through <code>status.expiresAt</code></td></tr>
@@ -236,9 +257,9 @@ incident-42   sre-remediation   2          2026-09-26T10:15:00Z   Active   1m</c
               <caption class="visually-hidden">ToolAccessLease status fields</caption>
               <thead><tr><th scope="col">Status field</th><th scope="col">Meaning</th></tr></thead>
               <tbody>
-                <tr><td><code>phase</code></td><td><code>Pending</code> (no requested cluster is placed yet, or the rule limit is reached on every cluster), <code>Active</code>, <code>Expired</code> or <code>Denied</code>; a summary of the conditions</td></tr>
+                <tr><td><code>phase</code></td><td><code>Pending</code> (no requested cluster is placed yet, the rule limit is reached on every cluster, or its policy does not exist yet, for at most 5 minutes after creation), <code>Active</code>, <code>Expired</code> or <code>Denied</code>; a summary of the conditions</td></tr>
                 <tr><td><code>expiresAt</code></td><td><code>creationTimestamp</code> + effective duration. For a lease without <code>spec.duration</code>, that is the policy default in effect at first evaluation, pinned here. Policy changes never extend it</td></tr>
-                <tr><td><code>clusters</code>, <code>clusterCount</code></td><td>Clusters that hold the grant; after expiry or denial, clusters still being revoked</td></tr>
+                <tr><td><code>clusters</code>, <code>clusterCount</code></td><td>For an active lease, the clusters its grant is rendered for, plus clusters that left the placement and that the grant is still being withdrawn from; those do not affect <code>Ready</code>. Delivery may still be in progress until the lease is <code>Ready</code>. After expiry or denial, the clusters the grant is still being withdrawn from</td></tr>
                 <tr><td><code>conditions</code></td><td><code>Ready</code>, <code>Progressing</code>, <code>Degraded</code>, <code>Expired</code>, <code>Denied</code></td></tr>
               </tbody>
             </table>
@@ -254,16 +275,17 @@ incident-42   sre-remediation   2          2026-09-26T10:15:00Z   Active   1m</c
                 <tr><td><code>RollingOut</code></td><td>Progressing=True</td><td>Delivery or acceptance pending on some clusters</td></tr>
                 <tr><td><code>NoEligibleClusters</code></td><td>Ready=False</td><td>None of the requested clusters is currently placed (phase Pending)</td></tr>
                 <tr><td><code>CapacityExceeded</code></td><td>Degraded=True</td><td>Upstream rule limit reached on the listed clusters. If that is every cluster, the lease is <code>Pending</code> and activates when capacity frees up. On a policy, standing grants did not fit</td></tr>
-                <tr><td><code>ClustersFailed</code></td><td>Degraded=True</td><td>Apply failed, rejected by enforcement, or cluster unavailable</td></tr>
-                <tr><td><code>PolicyNotFound</code></td><td>Ready=False (phase Pending), or Denied=True</td><td>The referenced policy does not exist. A lease never evaluated against it waits in <code>Pending</code>; a lease whose policy was deleted after evaluation is <code>Denied</code></td></tr>
+                <tr><td><code>ClustersFailed</code></td><td>Degraded=True</td><td>At least one cluster is <code>DeliveryFailed</code>, <code>ApplyFailed</code>, <code>RejectedByEnforcement</code> or <code>ClusterUnavailable</code>; the message lists the clusters</td></tr>
+                <tr><td><code>PolicyNotFound</code></td><td>Ready=False (phase Pending), or Denied=True</td><td>The referenced policy does not exist. A lease never evaluated against it waits in <code>Pending</code> for up to 5 minutes after creation, then is <code>Denied</code>, or <code>Expired</code> if its <code>spec.duration</code> ends first. A lease whose policy was deleted after evaluation is <code>Denied</code>, or <code>Expired</code> if it was already past its recorded expiry</td></tr>
                 <tr><td><code>SubjectNotAllowed</code></td><td>Denied=True</td><td>The subject is not in the policy</td></tr>
                 <tr><td><code>PermissionNotAllowed</code></td><td>Denied=True</td><td>A requested tool is not in the policy</td></tr>
                 <tr><td><code>DurationExceedsMaximum</code></td><td>Denied=True</td><td>The duration exceeds <code>maxDuration</code></td></tr>
                 <tr><td><code>LeaseExpired</code></td><td>Expired=True</td><td>Past <code>expiresAt</code></td></tr>
+                <tr><td><code>Revoking</code></td><td>Progressing=True</td><td>Grants of an expired or denied lease are still being withdrawn from the listed clusters, including clusters whose ManifestWork is still being deleted. The lease keeps listing them in <code>status.clusters</code> until the withdrawal is complete; while a cluster is offline, this can last indefinitely</td></tr>
               </tbody>
             </table>
           </div>
-          <p class="prose">Denied and Expired are terminal, provided only the controller can write <code>toolaccessleases/status</code>. A policy change that removes a lease's tool or subject denies it, and a policy change that would allow a previously denied lease does not revive it. Pending is not terminal.</p>
+          <p class="prose">Denied and Expired are terminal, provided only the controller can write <code>toolaccessleases/status</code>. A policy change that removes a lease's tool or subject, or lowers <code>maxDuration</code> below the lease's duration, denies it, and a policy change that would allow a previously denied lease does not revive it. Pending is not terminal.</p>
           <p class="prose">For a lease without <code>spec.duration</code>, the expiry lives in <code>status.expiresAt</code>. Grant write access to <code>toolaccessleases/status</code> to the controller only: a principal that can write lease status could extend such a lease up to the policy's <code>maxDuration</code>, never beyond it.</p>
         </section>
 

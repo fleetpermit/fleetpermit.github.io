@@ -169,7 +169,7 @@
       recDetail.appendChild(code);
       recDetail.appendChild(document.createTextNode(' '));
       var a = document.createElement('a');
-      a.href = 'results.html#matrix';
+      a.href = 'results.html#outcomes';
       a.textContent = 'Every recorded call in the matrix';
       recDetail.appendChild(a);
     }

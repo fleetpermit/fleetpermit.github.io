@@ -420,7 +420,7 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 2.5rem 0; }
  * minimum width and scrolls sideways inside its wrapper when the page is narrower. */
 .fig-scroll { overflow-x: auto; overscroll-behavior-x: contain; border-radius: var(--radius-l); }
 .fig-scroll img { min-width: 960px; }
-.fig-scroll.fig-dense img { min-width: 1040px; }
+.fig-scroll.fig-dense img { min-width: 1044px; }
 .fig-open { display: none; margin: 8px 0 0; font-size: var(--step--1); }
 @media (max-width: 1120px) { .fig-open { display: block; } }
 /* Up to 1100 px the scroll area spans the whole viewport width, so a 960 px diagram fits
@@ -519,13 +519,14 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 2.5rem 0; }
 
 .player-static-note { padding: 12px clamp(14px, 2vw, 24px); margin: 0; color: #a9b8cd; font-size: var(--step--1); border-top: 1px solid #22344f; }
 .player-swipe { display: none; margin: 0; padding: 0 16px 10px; color: #a9b8cd; font-size: var(--step--1); }
+.player.is-scrollable .player-swipe { display: block; }
 /* Narrow screens: keep the scene at a readable size (text at least about 10 px) and let it
  * scroll sideways inside the plate; the player script follows the current step. */
-@media (max-width: 880px) {
+@media (max-width: 1000px) {
   .player-stage { overflow-x: auto; overscroll-behavior-x: contain; padding: 8px 0 4px; scrollbar-width: thin; }
-  .player-stage svg { width: 820px; max-width: none; }
+  .player-stage svg { width: 100%; min-width: 820px; max-width: none; }
   .player-stage .scene text[font-size="11.5"], .player-stage .scene text[font-size="12"] { font-size: 12.5px; }
-  .player-swipe { display: block; }
+
 }
 
 .player :not(pre) > code { background: #1b3050; border-color: #2e4468; color: #e6edf6; }
@@ -1030,9 +1031,10 @@ details.evidence pre {
   .mini-matrix { border-spacing: 1px 4px; font-size: 0.8rem; }
   .mini-matrix th, .mini-matrix td { padding: 2px 2px; }
   .mini-matrix tbody th { font-size: 0.74rem; }
-  .mini-matrix thead th { font-size: 0.7rem; }
-  .dot { width: 11px; height: 11px; font-size: 9px; }
-  .dots { gap: 3px; }
+  .mini-matrix tbody th small { font-size: 10px; }
+  .mini-matrix thead th { font-size: 10.5px; }
+  .dot { width: 12px; height: 12px; font-size: 10px; }
+  .dots { gap: 2px; }
 }
 
 /* Independent reproductions. */
@@ -1152,3 +1154,6 @@ details.evidence pre {
   .sd-btn, .sd-fillwrap, .sd-plus, .sd-ring, .sd-sp, .sd-cursor { animation: none !important; }
   .sd-plus, .sd-fillwrap { display: none; }
 }
+
+/* Without JavaScript: hide loading placeholders and controls that would do nothing. */
+.no-js .js-only, .no-js .player-controls, .no-js .fx-pause, .no-js .flow-foot .fx-pause { display: none !important; }

@@ -9,8 +9,8 @@
 <meta name="theme-color" content="#0c1728">
 <link rel="icon" href="assets/img/logo-mark.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/img/avatar-512.png">
-<link rel="stylesheet" href="assets/css/site.css?v=85ea29d818">
-<link rel="stylesheet" href="assets/css/flows.css?v=bcb7154457">
+<link rel="stylesheet" href="assets/css/site.css?v=dd57e0b890">
+<link rel="stylesheet" href="assets/css/flows.css?v=714f46fa8e">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="FleetPermit">
 <meta property="og:title" content="Architecture | FleetPermit">
@@ -19,8 +19,8 @@
 <meta property="og:image" content="https://fleetpermit.github.io/assets/img/social-preview.png">
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){var d=document.documentElement,t='dark';d.className=d.className.replace('no-js','js');try{var s=localStorage.getItem('fp-theme');if(s==='light'||s==='dark')t=s;}catch(e){}d.setAttribute('data-theme',t);})();</script>
-<script src="assets/js/site.js?v=106244e587" defer></script>
-<script src="assets/js/flows.js?v=f538a6decf" defer></script>
+<script src="assets/js/site.js?v=cc30a89c8a" defer></script>
+<script src="assets/js/flows.js?v=071740ad93" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -56,7 +56,7 @@
     <section id="overview" style="margin-bottom:48px" aria-labelledby="overview-h">
       <h2 id="overview-h">Overview</h2>
       <figure class="figure">
-        <div class="fig-scroll" data-label="Architecture diagram, scrolls sideways"><img src="assets/img/architecture.svg" width="1200" height="800" alt="FleetPermit architecture. The hub cluster holds FleetAccessPolicy and ToolAccessLease objects, the Open Cluster Management hub with Placement and PlacementDecision, the fleetpermit-controller, and one ManifestWork per selected cluster. ManifestWork delivers a rendered XAccessPolicy to cluster-east and cluster-west, both env=production. cluster-edge, env=staging, receives nothing and denies every call through its default-deny anchor. Inside cluster-east, the OCM klusterlet applies the XAccessPolicy, the agentic networking controller programs the Envoy gateway, and the agent sre-agent calls the MCP tool server through the gateway over mTLS with a SPIFFE identity from Kubernetes Pod Certificates."></div>
+        <div class="fig-scroll" data-label="Architecture diagram, scrolls sideways"><img src="assets/img/architecture.svg" width="1200" height="800" alt="FleetPermit architecture. The hub cluster holds FleetAccessPolicy and ToolAccessLease objects, the Open Cluster Management hub with Placement and PlacementDecision, the fleetpermit-controller, and one ManifestWork per selected cluster. ManifestWork delivers a rendered XAccessPolicy to cluster-east and cluster-west, both env=production. cluster-edge, env=staging, receives nothing and denies every call through its default-deny anchor. Inside cluster-east, the OCM klusterlet applies the XAccessPolicy, the kube-agentic-networking controller programs the Envoy gateway, and the agent sre-agent calls the MCP tool server through the gateway over mTLS with a SPIFFE identity from Kubernetes Pod Certificates."></div>
         <a class="fig-open" href="assets/img/architecture.svg">Open the architecture diagram at full size</a>
         <figcaption>The lab topology: one hub and three managed clusters. The Placement selects clusters labelled <code>env=production</code>.</figcaption>
       </figure>
@@ -89,8 +89,8 @@
               <thead><tr><th scope="col">Component</th><th scope="col">Role</th></tr></thead>
               <tbody>
                 <tr><th scope="row"><code>fleetpermit-controller</code></th><td>Reconciles FleetAccessPolicy and ToolAccessLease, resolves placements, renders and delivers grants, and reports status. Exposes Prometheus metrics and optional OpenTelemetry traces. One Deployment, installed with Helm.</td></tr>
-                <tr><th scope="row">OCM Placement and PlacementDecision</th><td>Select managed clusters. FleetPermit only reads them.</td></tr>
-                <tr><th scope="row">OCM ManifestWork</th><td>Carries one rendered XAccessPolicy per policy and cluster. Status feedback reports whether the cluster applied and accepted it.</td></tr>
+                <tr><th scope="row">OCM Placement and PlacementDecision</th><td>Select managed clusters. FleetPermit only reads them, and counts only PlacementDecisions whose controller owner is the policy's Placement, as OCM sets it. The placement label alone could be set by anyone allowed to create decisions in the namespace.</td></tr>
+                <tr><th scope="row">OCM ManifestWork</th><td>Carries one rendered XAccessPolicy per policy and cluster. Status feedback reports whether the cluster applied and accepted it, and which content digest it holds; a cluster counts as ready only when that digest is the current one.</td></tr>
                 <tr><th scope="row">FleetAccessPolicy and ToolAccessLease</th><td>The two FleetPermit APIs in <code>fleetpermit.github.io/v1alpha1</code>. See the <a href="docs.html#api">API reference</a>.</td></tr>
               </tbody>
             </table>
@@ -123,7 +123,7 @@
             <li><div><h3>Request a lease</h3><p>Someone creates a ToolAccessLease, for example <code>incident-42</code>: <code>restart_workload</code> for 10 minutes, with a reason. The spec is immutable.</p></div></li>
             <li><div><h3>Check</h3><p>The controller checks WHO (the subject is in the policy), WHAT (the tools are a subset of its permissions), HOW LONG (the duration is at most <code>maxDuration</code>) and WHERE (the OCM PlacementDecision, which a lease may only narrow).</p></div></li>
             <li><div><h3>Render and deliver</h3><p>It renders one XAccessPolicy per policy and cluster, with one CEL rule per lease and one session rule per subject for the MCP base protocol methods (<code>initialize</code>, <code>tools/list</code>, <code>ping</code> and others), stamped with SHA-256 content digest annotations. One ManifestWork per cluster delivers it.</p></div></li>
-            <li><div><h3>Apply and report</h3><p>The OCM work agent applies it, the agentic networking controller programs Envoy, and acceptance flows back through ManifestWork status feedback. The lease becomes Ready once every cluster reports the current digest.</p></div></li>
+            <li><div><h3>Apply and report</h3><p>The OCM work agent applies it, the kube-agentic-networking controller programs Envoy, and acceptance flows back through ManifestWork status feedback. The lease becomes Ready once every cluster reports the current digest.</p></div></li>
             <li><div><h3>Call</h3><p>The agent calls the tool through the gateway with its mTLS SPIFFE identity. Envoy checks identity, tool and time and allows it. An unselected cluster, a wrong identity or an unlisted tool is denied.</p></div></li>
             <li><div><h3>Expire</h3><p>At expiry Envoy itself denies, because the time bound is part of the rule. This holds even when the hub is unreachable. The controller then removes the grant. If no other grant remains on that cluster, an inert policy that allows nothing stays in place, so the cluster stays wired for the next lease.</p></div></li>
           </ol>
@@ -152,7 +152,7 @@
                 <li><span class="fl-step"><span>FleetPermit on the hub checks it against the policy. The subject is listed, both tools are permitted, and 5 minutes is within the 10 minute maximum.</span></span></li>
                 <li><span class="fl-step"><span>The Placement selects cluster-east and cluster-west. FleetPermit renders an XAccessPolicy for each, sends it in a ManifestWork and marks the lease Active.</span></span></li>
                 <li><span class="fl-step"><span><code>sre-agent</code> calls <code>restart_workload</code> on both clusters and gets ALLOW. The test times each cluster from lease creation to the first ALLOW.</span></span></li>
-                <li><span class="fl-step"><span>The lease reports Ready once OCM confirms the policy is applied on both clusters.</span></span></li>
+                <li><span class="fl-step"><span>The lease reports Ready once OCM's status feedback from both clusters shows the policy applied and accepted, with the current content digest.</span></span></li>
                 <li><span class="fl-step"><span>cluster-edge is not selected. The same call there gets DENY, and no grant was rendered on it (S6).</span></span></li>
               </ol>
               <div class="fl-facts">
@@ -324,7 +324,7 @@
               <ol class="fl-steps">
                 <li><span class="fl-step"><span>An active lease lets <code>sre-agent</code> call <code>restart_workload</code> on cluster-east.</span></span></li>
                 <li><span class="fl-step"><span>The test deletes the FleetPermit controller pod on the hub and makes 20 calls while it comes back.</span></span></li>
-                <li><span class="fl-step"><span>It then restarts the agentic-networking controller on cluster-east and makes 20 more calls.</span></span></li>
+                <li><span class="fl-step"><span>It then restarts the kube-agentic-networking controller on cluster-east and makes 20 more calls.</span></span></li>
                 <li><span class="fl-step"><span>Every call must get ALLOW. Envoy keeps enforcing the rules it already has while the controllers restart.</span></span></li>
                 <li><span class="fl-step"><span>Afterwards a new lease for <code>get_cluster_health</code> gets ALLOW on cluster-east.</span></span></li>
               </ol>
@@ -343,7 +343,7 @@
         <section id="lifecycle" aria-labelledby="lifecycle-h">
           <h2 id="lifecycle-h">Lease lifecycle</h2>
           <figure class="figure wide">
-            <div class="fig-scroll" data-label="Lease lifecycle diagram, scrolls sideways"><img src="assets/img/lease-lifecycle.svg" width="1200" height="560" alt="ToolAccessLease lifecycle. A new lease is checked against its policy. If WHO, WHAT or HOW LONG fails, or its policy is deleted after the lease was evaluated, it becomes Denied, which is terminal, with reasons SubjectNotAllowed, PermissionNotAllowed, DurationExceedsMaximum or PolicyNotFound. Otherwise it is Pending while its policy does not exist yet, or until a requested cluster is placed and has room under the upstream rule limit, and becomes Active once a grant is rendered on a selected cluster, and Envoy allows the leased tools while request.time is before the expiry timestamp. When request.time reaches expiresAt it becomes Expired, also terminal, and the controller withdraws the grant. Deleting an Active lease revokes it on every cluster. expiresAt equals creationTimestamp plus the effective duration; for a lease without spec.duration the default in effect at first evaluation is pinned, and policy changes never extend it."></div>
+            <div class="fig-scroll" data-label="Lease lifecycle diagram, scrolls sideways"><img src="assets/img/lease-lifecycle.svg" width="1200" height="560" alt="ToolAccessLease lifecycle. A new lease is checked against its policy. If WHO, WHAT or HOW LONG fails it becomes Denied, which is terminal, with reasons SubjectNotAllowed, PermissionNotAllowed, DurationExceedsMaximum or PolicyNotFound. A lease whose policy does not exist yet waits in Pending for up to 5 minutes after creation, then becomes Denied with PolicyNotFound. Otherwise it is Pending until a requested cluster is placed and has room under the upstream rule limit, and becomes Active once a grant is rendered on a selected cluster; Envoy allows the leased tools while request.time is before the expiry timestamp. An Active lease goes back to Pending when none of its clusters is placed any more, and becomes Denied when its policy is narrowed so it no longer allows the lease, or is deleted (Expired instead, if it was already past its recorded expiry). When request.time reaches expiresAt the lease becomes Expired, also terminal, and the controller withdraws the grant; a Pending lease expires at that time too. Deleting an Active lease revokes it on every cluster. expiresAt equals creationTimestamp plus the effective duration; for a lease without spec.duration the default in effect at first evaluation is pinned, and policy changes never extend it."></div>
             <a class="fig-open" href="assets/img/lease-lifecycle.svg">Open the lease lifecycle diagram at full size</a>
           </figure>
           <p class="prose"><code>expiresAt</code> is the API server's creation time plus the effective duration. For a lease without <code>spec.duration</code>, that is the policy default in effect at the first evaluation, pinned in status; policy changes never extend it. Only the controller should be allowed to write lease status. To change a lease, delete it and create a new one, so every grant is traceable to exactly one request.</p>

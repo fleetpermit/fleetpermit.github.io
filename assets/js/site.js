@@ -157,11 +157,35 @@
 
     scrollAreas();
     document.addEventListener('fp:rendered', scrollAreas);
+    followHash();
     var resizeTimer = 0;
     window.addEventListener('resize', function () {
       window.clearTimeout(resizeTimer);
       resizeTimer = window.setTimeout(scrollAreas, 200);
     });
+  }
+
+  /* A #section link can land too low when content above it renders after the page loads
+   * (results, flows). Scroll to the target again after each render and on load, unless the
+   * visitor has scrolled or interacted since. The results and flows scripts position their
+   * own targets (rows, cards, flow tabs), so those are left to them. */
+  function followHash() {
+    var id = decodeURIComponent((window.location.hash || '').slice(1));
+    if (!id) return;
+    var moved = false;
+    var stop = function () { moved = true; };
+    ['wheel', 'touchstart', 'keydown', 'pointerdown'].forEach(function (ev) {
+      window.addEventListener(ev, stop, { once: true, passive: true });
+    });
+    var again = function () {
+      if (moved) return;
+      var target = document.getElementById(id);
+      if (!target || target.closest('#results-root, #results-preview, .fl-panel')) return;
+      target.scrollIntoView({ block: 'start' });
+    };
+    document.addEventListener('fp:rendered', again);
+    window.addEventListener('load', function () { window.setTimeout(again, 50); });
+    window.setTimeout(function () { document.removeEventListener('fp:rendered', again); }, 10000);
   }
 
   /* Areas that scroll sideways (tables, code, wide diagrams) get keyboard focus and a

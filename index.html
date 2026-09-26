@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0c1728">
 <link rel="icon" href="assets/img/logo-mark.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/img/avatar-512.png">
-<link rel="stylesheet" href="assets/css/site.css?v=85ea29d818">
+<link rel="stylesheet" href="assets/css/site.css?v=dd57e0b890">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="FleetPermit">
 <meta property="og:title" content="FleetPermit: least privilege for agents, across every cluster">
@@ -18,12 +18,12 @@
 <meta property="og:image" content="https://fleetpermit.github.io/assets/img/social-preview.png">
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){var d=document.documentElement,t='dark';d.className=d.className.replace('no-js','js');try{var s=localStorage.getItem('fp-theme');if(s==='light'||s==='dark')t=s;}catch(e){}d.setAttribute('data-theme',t);})();</script>
-<script src="assets/js/site.js?v=106244e587" defer></script>
-<link rel="stylesheet" href="assets/css/hero.css?v=8740d60b71">
+<script src="assets/js/site.js?v=cc30a89c8a" defer></script>
+<link rel="stylesheet" href="assets/css/hero.css?v=6511f7927a">
 <link rel="stylesheet" href="assets/css/agents.css?v=7eebe30126">
-<script src="assets/js/hero.js?v=37bc8dfe8f" defer></script>
-<script src="assets/js/architecture-player.js?v=640024abfd" defer></script>
-<script src="assets/js/results.js?v=ad8beb0c64" defer></script>
+<script src="assets/js/hero.js?v=e293ea9aa0" defer></script>
+<script src="assets/js/architecture-player.js?v=93cb5349c7" defer></script>
+<script src="assets/js/results.js?v=e4310fc839" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -139,7 +139,7 @@
       </div>
       <div class="ticker-window" id="ticker-window" role="region" aria-labelledby="ticker-title">
         <ol class="ticker-list" id="ticker-list" aria-label="Recorded lab decisions">
-          <li><span class="t-route">Loading recorded decisions</span></li>
+          <li class="js-only"><span class="t-route">Loading recorded decisions</span></li>
         </ol>
       </div>
       <noscript><p class="ticker-sub" style="padding:12px 18px">The replay needs JavaScript. See <a href="results.html">all recorded results</a>.</p></noscript>
@@ -170,7 +170,7 @@
           <ol class="pipeline" aria-label="The working path">
             <li>OCM Placement</li>
             <li>FleetPermit policy and lease</li>
-            <li>Kubernetes Agentic Networking XAccessPolicy on Envoy</li>
+            <li>kube-agentic-networking XAccessPolicy on Envoy</li>
             <li>MCP <span class="pill pill-allow">ALLOW</span> or <span class="pill pill-deny">DENY</span></li>
           </ol>
           <p>The whole path runs on real clusters: 1 hub and 3 managed clusters.</p>
@@ -225,7 +225,7 @@
               <text x="38" y="82" class="mono" font-size="19" font-weight="700">incident-42</text>
               <text x="38" y="110" class="mono dim" font-size="13">restart_workload</text>
               <text x="38" y="130" class="mono dim" font-size="13">for 10m</text>
-              <text id="lease-status" x="38" y="172" font-size="13.5" class="dim">Status: Pending</text>
+              <text id="lease-status" x="38" y="172" font-size="13.5" class="dim">Status: new</text>
               <circle cx="220" cy="130" r="28" fill="none" stroke="#2E4468" stroke-width="5"/>
               <circle id="ring" cx="220" cy="130" r="28" fill="none" stroke="#F5B544" stroke-width="5" stroke-linecap="round" stroke-dasharray="175.93" stroke-dashoffset="0" transform="rotate(-90 220 130)"/>
               <text id="timer" x="220" y="135" text-anchor="middle" class="mono" font-size="13" font-weight="700" fill="#F5B544">10:00</text>
@@ -406,7 +406,7 @@
         <li>
           <div>
             <h3>Render and deliver</h3>
-            <p>For each selected cluster it renders one XAccessPolicy with one CEL rule per lease, such as <code>request.mcp.tool_name in ['restart_workload'] &amp;&amp; request.time &lt; timestamp('2026-09-26T10:15:00Z')</code>, stamps a SHA-256 content digest, and delivers it with one ManifestWork. Status feedback marks the lease Ready.</p>
+            <p>For each selected cluster it renders one XAccessPolicy with one CEL rule per lease, such as <code>request.mcp.tool_name in ['restart_workload'] &amp;&amp; request.time &lt; timestamp('2026-09-26T10:15:00Z')</code>, stamps a SHA-256 content digest, and delivers it with one ManifestWork. The lease is Ready once OCM's status feedback from every cluster reports the object applied and accepted, with the current content digest.</p>
           </div>
         </li>
         <li>
@@ -538,7 +538,7 @@ incident-42   sre-remediation   2          2026-09-26T10:15:00Z   Active   1m</c
             <tr><th scope="row">Default deny with the anchor</th><td>The shipped default-deny anchor, an XAccessPolicy installed next to each tool backend, makes a backend with no grant refuse every call. Upstream enforces nothing on a backend without any XAccessPolicy, so the anchor is part of the installation.</td></tr>
             <tr><th scope="row">Identity from the platform</th><td>Agents present SPIFFE X.509 certificates from an issuer the gateway trusts (Kubernetes Pod Certificates in the lab); the gateway authenticates them over mTLS.</td></tr>
             <tr><th scope="row">Only narrowing, never widening</th><td>A lease activates a subset of the policy's tools, for at most <code>maxDuration</code>, on at most the placement's clusters.</td></tr>
-            <tr><th scope="row">Narrow controller RBAC</th><td>On the hub, the controller reads placement and writes ManifestWork. It cannot read Secrets or create pods, RBAC or namespaces. The OCM work agent applies whatever a ManifestWork carries, so the controller's ServiceAccount is still a privileged credential; <code>--work-executor</code> makes the work agent apply FleetPermit's content as a restricted managed-cluster identity.</td></tr>
+            <tr><th scope="row">Narrow controller RBAC</th><td>On the hub, the controller reads placement and ManifestWork and writes ManifestWork. It has no access to the Secret, workload or RBAC APIs. It can still read every ManifestWork on the hub, including other tools' content, which can embed Secrets, and the OCM work agent applies whatever a ManifestWork carries, so its ServiceAccount is a privileged credential. <code>--work-executor</code> makes the work agent check FleetPermit's content against a restricted managed-cluster ServiceAccount before applying it; the agent still writes with its own identity. That alone does not stop a stolen controller credential; it also needs OCM's alpha <code>NilExecutorValidating</code> feature gate on the hub.</td></tr>
             <tr><th scope="row">Errors never add authority</th><td>With the default-deny anchor installed, render errors or a missing Placement withdraw grants, and lease grants expire on time. Denied and Expired leases are terminal. <code>failMode</code> accepts only <code>Closed</code>.</td></tr>
             <tr><th scope="row">Traceable content</th><td>Each rendered object carries a SHA-256 content digest and source annotations. Drifted objects are restored from the hub.</td></tr>
           </tbody>
@@ -555,7 +555,7 @@ incident-42   sre-remediation   2          2026-09-26T10:15:00Z   Active   1m</c
         <p>Every decision in the end-to-end suite is an MCP call from a test pod's SPIFFE identity through a cluster's Envoy gateway, on local kind clusters.</p>
       </div>
       <div id="results-preview" aria-busy="true">
-        <p class="state">Loading results from <a href="data/results.json">data/results.json</a>.</p>
+        <p class="state js-only">Loading results from <a href="data/results.json">data/results.json</a>.</p>
       </div>
       <noscript><p class="state">The results summary needs JavaScript. The raw data is at <a href="data/results.json">data/results.json</a>.</p></noscript>
       <p><a href="results.html">All scenarios, evidence and latency</a></p>
@@ -602,14 +602,16 @@ incident-42   sre-remediation   2          2026-09-26T10:15:00Z   Active   1m</c
         </div>
         <div class="code-block" data-commands-only>
           <div class="code-title" data-label="install commands">existing fleet</div>
-          <pre><code><span class="tok-c"># on the OCM hub</span>
+          <pre><code><span class="tok-c"># in a clone of the repository, at the release tag</span>
+<span class="tok-p">$ </span>git checkout v0.1.1
+<span class="tok-c"># on the OCM hub</span>
 <span class="tok-p">$ </span>helm install fleetpermit charts/fleetpermit -n fleetpermit-system --create-namespace
-<span class="tok-c"># on each managed cluster</span>
+<span class="tok-c"># on each managed cluster; first set the anchor's namespace and targetRefs to your policies' target</span>
 <span class="tok-p">$ </span>kubectl apply -f config/managed-cluster/work-agent-rbac.yaml
-<span class="tok-p">$ </span>kubectl apply -f config/managed-cluster/default-deny-anchor.yaml   <span class="tok-c"># edit namespace/backend name first</span></code></pre>
+<span class="tok-p">$ </span>kubectl apply -f config/managed-cluster/default-deny-anchor.yaml</code></pre>
         </div>
       </div>
-      <p><a href="docs.html">Prerequisites and full instructions</a></p>
+      <p>You can also install the signed chart attached to the release; <a href="docs.html#install">verify it first</a>. <a href="docs.html">Prerequisites and full instructions</a></p>
       <div class="star-end">
         <p>If FleetPermit is useful to you, a star helps others find it.</p>
         <a class="star-demo" href="https://github.com/fleetpermit/fleetpermit"><span class="sd-lead">Star us</span><span class="visually-hidden"> on GitHub</span><span class="sd-arrow" aria-hidden="true">→</span><span class="sd-btn" aria-hidden="true"><span class="sd-ring"></span><span class="sd-star"><svg class="sd-outline" width="18" height="18" viewBox="0 0 24 24" focusable="false"><path d="M12 2.6l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9z"/></svg><span class="sd-fillwrap"><svg class="sd-fill" width="18" height="18" viewBox="0 0 24 24" focusable="false"><path d="M12 2.6l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9z"/></svg></span><span class="sd-sp s1"></span><span class="sd-sp s2"></span><span class="sd-sp s3"></span><span class="sd-sp s4"></span><span class="sd-sp s5"></span><span class="sd-sp s6"></span></span><span class="sd-label">Star</span><span class="sd-plus">+1</span><span class="sd-cursor"><svg width="16" height="22" viewBox="0 0 16 22" focusable="false"><path d="M1.2 1.2V17.2L5.1 13.6L8.1 20.4L10.9 19.2L7.9 12.4H13.3Z"/></svg></span></span></a>

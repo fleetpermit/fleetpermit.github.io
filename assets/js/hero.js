@@ -29,13 +29,8 @@
     hero.classList.toggle('fx-paused', !run);
     hero.classList.toggle('fx-user-paused', userPaused);
     hero.classList.toggle('fx-static', reduced);
-    if (pauseBtn) {
-      pauseBtn.setAttribute('aria-pressed', String(userPaused));
-      pauseBtn.querySelector('.lbl').textContent = userPaused ? 'Play motion' : 'Pause motion';
-      var iPause = pauseBtn.querySelector('.i-pause'), iPlay = pauseBtn.querySelector('.i-play');
-      if (userPaused) { iPause.setAttribute('hidden', ''); iPlay.removeAttribute('hidden'); }
-      else { iPlay.setAttribute('hidden', ''); iPause.removeAttribute('hidden'); }
-    }
+    /* A toggle button: the label stays "Pause motion" and aria-pressed says whether it is on. */
+    if (pauseBtn) pauseBtn.setAttribute('aria-pressed', String(userPaused));
     if (run && rows > 4 && !tickerHeld) startTicker(); else stopTicker();
     if (run) startCountdown(); else stopCountdown();
   }

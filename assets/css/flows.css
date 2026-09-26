@@ -123,8 +123,9 @@ button.fl-step:hover { background: var(--bg-2); color: var(--text); }
 .fl-svg .wire.call { stroke-dasharray: 2 6; }
 .fl-svg .wire.call.on { stroke: #f5b544; }
 
-.fl-svg .hub { transition: opacity 450ms ease; }
-.fl-svg .hub.paused { opacity: 0.4; }
+.fl-svg .hub > .box, .fl-svg .hub > text, .fl-svg .hub .chip rect, .fl-svg .hub .chip text, .fl-svg .hub .ringg { transition: opacity 450ms ease; }
+/* A paused hub dims its box and contents; the status line stays at full contrast. */
+.fl-svg .hub.paused > .box, .fl-svg .hub.paused > text:not(.st), .fl-svg .hub.paused .chip rect, .fl-svg .hub.paused .chip text, .fl-svg .hub.paused .ringg { opacity: 0.4; }
 .fl-svg .hub.hot > .box { stroke: #2dd4bf; stroke-width: 2; }
 .fl-svg .ctrl { font-size: 13px; font-weight: 700; fill: #2dd4bf; transition: opacity 300ms ease; }
 .fl-svg .hub.restarting .ctrl { opacity: 0.4; }
@@ -198,4 +199,10 @@ button.fl-step:hover { background: var(--bg-2); color: var(--text); }
 
 @media (prefers-reduced-motion: reduce) {
   .fl-svg *, .fl-caps > span, .fl-tab { transition: none !important; animation: none !important; }
+}
+
+/* Phones: the scene uses the full screen width, so its smallest text stays at 10 px. */
+@media (max-width: 480px) {
+  .fl-player { margin-inline: calc(-1 * var(--gutter)); border-radius: 0; border-inline: 0; }
+  .fl-stage { padding-inline: 0; }
 }

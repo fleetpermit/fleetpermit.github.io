@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0c1728">
 <link rel="icon" href="assets/img/logo-mark.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/img/avatar-512.png">
-<link rel="stylesheet" href="assets/css/site.css?v=85ea29d818">
+<link rel="stylesheet" href="assets/css/site.css?v=dd57e0b890">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="FleetPermit">
 <meta property="og:title" content="Security model | FleetPermit">
@@ -18,7 +18,7 @@
 <meta property="og:image" content="https://fleetpermit.github.io/assets/img/social-preview.png">
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){var d=document.documentElement,t='dark';d.className=d.className.replace('no-js','js');try{var s=localStorage.getItem('fp-theme');if(s==='light'||s==='dark')t=s;}catch(e){}d.setAttribute('data-theme',t);})();</script>
-<script src="assets/js/site.js?v=106244e587" defer></script>
+<script src="assets/js/site.js?v=cc30a89c8a" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -54,12 +54,14 @@
     <section id="model" style="margin-bottom:48px" aria-labelledby="model-h">
       <h2 id="model-h">Trust boundaries</h2>
       <figure class="figure">
-        <div class="fig-scroll fig-dense" data-label="Trust boundaries diagram, scrolls sideways"><img src="assets/img/security-model.svg" width="1200" height="660" alt="Trust boundaries and failure handling. The hub cluster contains API server admission (F1: malformed policies are rejected and failMode accepts only Closed), the fleetpermit-controller, which has no access to Secrets, workloads or RBAC but can write ManifestWork for every managed cluster (F2: a render error or missing Placement withdraws grants; F3: Denied and Expired leases are terminal), and the Open Cluster Management hub. ManifestWork crosses the trust boundary to the managed cluster, where work-agent-rbac.yaml adds XAccessPolicy permissions to the OCM work agent. Kubernetes Pod Certificates issue the agent's SPIFFE X.509 identity. The Envoy gateway verifies it over mTLS and evaluates tool name and request time (F4: expiry holds with the hub unreachable; F6: wrong identity, unlisted tool or unselected cluster is denied). A default-deny anchor, when installed, denies calls to a backend with no grant (F5)."></div>
+        <div class="fig-scroll fig-dense" data-label="Trust boundaries diagram, scrolls sideways"><img src="assets/img/security-model.svg" width="1200" height="660" alt="Trust boundaries and failure handling. The hub cluster contains API server admission (F1: malformed policies are rejected and failMode accepts only Closed), the fleetpermit-controller, which has no access to Secrets, workloads or RBAC but reads and writes ManifestWork for every managed cluster (F2: a render error or missing Placement withdraws grants; F3: Denied and Expired leases are terminal), and the Open Cluster Management hub. ManifestWork crosses the trust boundary to the managed cluster, where work-agent-rbac.yaml adds XAccessPolicy permissions to the OCM work agent. Kubernetes Pod Certificates issue the agent's SPIFFE X.509 identity. The Envoy gateway verifies it over mTLS and evaluates tool name and request time (F4: expiry holds with the hub unreachable; F6: wrong identity, unlisted tool or unselected cluster is denied). A default-deny anchor, when installed, denies calls to a backend with no grant (F5)."></div>
         <a class="fig-open" href="assets/img/security-model.svg">Open the trust boundaries diagram at full size</a>
       </figure>
       <div class="prose">
         <p>The hub makes decisions but does not sit in the request path. Kubernetes RBAC on the hub decides who may write a FleetAccessPolicy (the ceiling) and who may create a ToolAccessLease (activation), so on-call engineers can activate access without being able to change the ceiling. FleetPermit never issues, stores or sees credentials. The gateway authenticates the caller from its mTLS peer certificate.</p>
-        <p>The controller has no access to Secrets, workloads or RBAC on the hub. It can create and update ManifestWork in every managed-cluster namespace, though, and the OCM work agent applies that content on the managed cluster. Treat the controller's ServiceAccount as a privileged credential. The <code>--work-executor</code> flag makes the work agent apply FleetPermit's content as a restricted managed-cluster ServiceAccount (not exercised by the lab tests). On each managed cluster, <code>work-agent-rbac.yaml</code> adds XAccessPolicy permissions to the OCM work agent; it does not restrict the agent.</p>
+        <p>The controller has no access to the Secret, workload or RBAC APIs on the hub. Its ManifestWork permissions cover every managed-cluster namespace, though: it can read every ManifestWork on the hub, including content other tools deliver, which can embed Secrets, and it can create and update ManifestWork that the OCM work agent applies on the managed cluster. Treat the controller's ServiceAccount as a privileged credential.</p>
+        <p>The <code>--work-executor</code> flag makes the OCM work agent check FleetPermit's content against a restricted managed-cluster ServiceAccount before applying it. The agent still writes with its own identity, and the lab tests do not exercise this option. It does not stop a stolen controller credential on its own: that credential can create a ManifestWork without an executor, which the work agent applies with its own permissions. Only OCM's <code>NilExecutorValidating</code> feature gate on the hub, which is alpha and off by default, makes OCM check those too.</p>
+        <p>On each managed cluster, <code>work-agent-rbac.yaml</code> adds XAccessPolicy permissions to the OCM work agent; it does not restrict the agent.</p>
       </div>
     </section>
 
@@ -69,7 +71,7 @@
         <ul>
           <li><a href="#model">Trust boundaries</a></li>
           <li><a href="#principles">Principles</a></li>
-          <li><a href="#fail-closed">If something disappears</a></li>
+          <li><a href="#fail-closed">If something fails or disappears</a></li>
           <li><a href="#threats">Threat summary</a></li>
           <li><a href="#limits">Limits</a></li>
           <li><a href="#report">Reporting</a></li>
@@ -89,19 +91,22 @@
         </section>
 
         <section id="fail-closed" aria-labelledby="fail-closed-h">
-          <h2 id="fail-closed-h">What happens if something disappears</h2>
+          <h2 id="fail-closed-h">What happens if something fails or disappears</h2>
           <div class="table-wrap">
             <table class="prop-table">
               <caption class="visually-hidden">Effect on authorization when a component disappears</caption>
-              <thead><tr><th scope="col">If this disappears</th><th scope="col">Effect on authorization</th><th scope="col">Recovery</th></tr></thead>
+              <thead><tr><th scope="col">If this fails or disappears</th><th scope="col">Effect on authorization</th><th scope="col">Recovery</th></tr></thead>
               <tbody>
                 <tr><th scope="row">FleetPermit controller</th><td>Existing grants keep working until their expiry, which Envoy enforces. New leases are not activated.</td><td>Restart. State is recomputed from the API; a restart neither withdraws nor re-creates grants (<a href="results.html#S15">S15</a>).</td></tr>
                 <tr><th scope="row">OCM hub</th><td>Managed clusters keep enforcing their last delivered grants and expire them on time (<a href="results.html#S11">S11</a>). Early revocation cannot reach them.</td><td>On reconnection, expired grants are withdrawn (<a href="results.html#S12">S12</a>).</td></tr>
                 <tr><th scope="row">OCM work agent</th><td>Delivered grants stay enforced and expire on time. New leases and early revocation are not applied on that cluster. A cluster with a pending change shows as not ready (<code>Applying</code>); it is reported <code>ClusterUnavailable</code> only once OCM marks the ManagedCluster unavailable.</td><td>A work agent restart re-syncs.</td></tr>
-                <tr><th scope="row">Gateway or Envoy</th><td>There is no path to the tool server, so calls fail. A controller restart leaves Envoy's last configuration in place.</td><td>Standard Deployment recovery.</td></tr>
+                <tr><th scope="row">Envoy gateway</th><td>There is no path to the tool server, so calls fail.</td><td>Standard Deployment recovery.</td></tr>
+                <tr><th scope="row">kube-agentic-networking controller</th><td>Envoy keeps its last configuration, so decisions do not change and grants still expire on time (<a href="results.html#S15">S15</a> restarts it). New grants and early revocations are not programmed into Envoy until the controller returns.</td><td>Standard Deployment recovery.</td></tr>
                 <tr><th scope="row">Identity issuer</th><td>Callers without a valid certificate cannot complete mTLS and are rejected.</td><td>Issuer recovery; certificates rotate automatically.</td></tr>
                 <tr><th scope="row">Placement</th><td>Every grant for the policy is withdrawn and the policy reports <code>Degraded</code> with <code>PlacementNotFound</code>. Its leases wait in <code>Pending</code> (<code>NoEligibleClusters</code>); they are not denied.</td><td>Recreate the Placement. Leases that have not expired are delivered again.</td></tr>
-                <tr><th scope="row">FleetAccessPolicy</th><td>The finalizer withdraws every grant. A lease that was evaluated against the policy becomes <code>Denied</code> (<code>PolicyNotFound</code>), which is terminal, or <code>Expired</code> if it was past its recorded expiry. A lease applied before its policy waits in <code>Pending</code>. If the finalizer was removed by hand, the controller still deletes the policy's ManifestWorks.</td><td>Recreate the policy. Pending leases then activate; denied ones need new leases.</td></tr>
+                <tr><th scope="row">FleetAccessPolicy</th><td>The finalizer withdraws every grant. A lease that was evaluated against the policy becomes <code>Denied</code> (<code>PolicyNotFound</code>), which is terminal, or <code>Expired</code> if it was past its recorded expiry. A lease applied before its policy waits in <code>Pending</code> for up to 5 minutes after creation, then is <code>Denied</code>, or <code>Expired</code> if its duration ends first. If the finalizer was removed by hand, the controller still deletes the policy's ManifestWorks, and if a policy is re-created under the same name, the earlier policy's ManifestWorks are deleted on every cluster.</td><td>Recreate the policy. Pending leases then activate if they are still within their 5 minutes; denied ones need new leases.</td></tr>
+                <tr><th scope="row">Rendering for a cluster</th><td>If rendering fails, that cluster's grants are withdrawn and it is reported <code>DeliveryFailed</code>.</td><td>Fix the input. The controller retries after 1 s, then 2, 4, 8 s and so on up to 2 minutes while the failure persists; a fix that raises no event can take up to that delay to be noticed.</td></tr>
+                <tr><th scope="row">Delivery of the ManifestWork</th><td>If the hub rejects it, or another policy owns a ManifestWork with the same name, the cluster is reported <code>DeliveryFailed</code>; what it already holds stays in place.</td><td>Fix the cause. Retries back off the same way, and any reconcile without a failure resets the backoff.</td></tr>
                 <tr><th scope="row">A delivered XAccessPolicy</th><td>The gateway may still allow calls briefly, until it drops the deleted rule; then the default-deny anchor denies.</td><td>OCM reports the object missing at its next status sync (every 10 s in the lab), and FleetPermit requests an immediate re-apply (<a href="results.html#S10">S10</a>). The <a href="results.html#latency">results</a> show the measured drift recovery.</td></tr>
                 <tr><th scope="row">The default-deny anchor</th><td>Upstream enforces nothing on a target with no XAccessPolicy, so the backend is open (<a href="results.html#A1">A1</a>). Install the anchor with every governed backend.</td><td>Re-apply <code>default-deny-anchor.yaml</code>.</td></tr>
               </tbody>
@@ -125,7 +130,8 @@
                 <tr><th scope="row">CRD mutation or CEL injection</th><td>Lease spec is immutable. Tool names and SPIFFE IDs are validated by schema and again by the renderer; malformed policies are rejected (<a href="results.html#S14">S14</a>).</td><td>Whoever can edit the policy can change the ceiling. Protect it with RBAC.</td></tr>
                 <tr><th scope="row">Hub disconnect</th><td>Expiry is enforced by the gateway (<a href="results.html#S11">S11</a>); stale grants are withdrawn after reconnection (<a href="results.html#S12">S12</a>).</td><td>Early revocation cannot reach a disconnected cluster.</td></tr>
                 <tr><th scope="row">Placement change</th><td>A cluster that leaves the placement loses its grants; one that joins gains them (<a href="results.html#S7">S7</a>).</td><td>Withdrawal needs the hub to reach that cluster.</td></tr>
-                <tr><th scope="row">Controller ServiceAccount misuse</th><td>No access to Secrets, workloads or RBAC on the hub (<a href="results.html#RBAC">RBAC</a>). The optional <code>--work-executor</code> flag (not exercised by the lab tests) makes the OCM work agent apply content as a restricted managed-cluster identity.</td><td>The controller can write ManifestWork in every managed-cluster namespace, so a stolen credential could deliver content through the OCM work agent unless an executor restricts it. Protect the controller's namespace.</td></tr>
+                <tr><th scope="row">Controller ServiceAccount misuse</th><td>No access to the Secret, workload or RBAC APIs on the hub (<a href="results.html#RBAC">RBAC</a>). The optional <code>--work-executor</code> flag (not exercised by the lab tests) makes the OCM work agent check FleetPermit's content against a restricted managed-cluster ServiceAccount before applying it; the agent still writes with its own identity.</td><td>The controller can read every ManifestWork on the hub, including other tools' content, which can embed Secrets, and can write ManifestWork in every managed-cluster namespace. A stolen credential can create a ManifestWork without an executor, which the work agent applies with its own permissions; <code>--work-executor</code> blocks that only if the hub enables OCM's alpha <code>NilExecutorValidating</code> feature gate. Protect the controller's namespace and ServiceAccount.</td></tr>
+                <tr><th scope="row">Forged PlacementDecision</th><td>FleetPermit counts only PlacementDecisions whose controller owner is the policy's Placement, as OCM sets it; a decision that only carries the placement label is ignored.</td><td>Anyone who can create PlacementDecisions in the namespace can also set that owner reference. Give write access to <code>placementdecisions</code> to OCM's placement controller only.</td></tr>
               </tbody>
             </table>
           </div>

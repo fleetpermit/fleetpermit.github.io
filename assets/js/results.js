@@ -211,7 +211,7 @@
       kids.push(h('p', { class: 'matrix-note' }, ['Every cell is one real MCP call through the gateway on that cluster. The raw probe output for each call is in the ',
         h('a', { href: '#MATRIX', text: 'MATRIX scenario' }), '.']));
     }
-    return section('matrix', 'Test agents and expected outcomes',
+    return section('outcomes', 'Test agents and expected outcomes',
       'Two workload identities call four tools on three clusters, with the lease active and after it expired. The expected decision comes from the policy; the observed one from the gateway.', kids);
   }
 
@@ -364,7 +364,7 @@
         h('caption', { class: 'visually-hidden', text: 'Recorded decisions per agent, lease state and cluster' }),
         h('thead', null, [head]), body
       ])]),
-      h('p', { class: 'small', style: 'margin:10px 0 0' }, [h('a', { href: 'results.html#matrix', text: 'Every call with expected and observed decisions' })])
+      h('p', { class: 'small', style: 'margin:10px 0 0' }, [h('a', { href: 'results.html#outcomes', text: 'Every call with expected and observed decisions' })])
     ]);
   }
 
@@ -632,7 +632,8 @@
     var rows = scale.rows.filter(function (r) { return isNum(r.clusters) && isNum(r.activationMs); });
     var chart = null;
     if (rows.length) {
-      var W = 560, rowH = 28, padL = 60, padR = 70, H = rows.length * rowH + 30;
+      /* The viewBox follows the card width (320 to 560), so the labels stay near 12 px. */
+      var W = Math.max(320, Math.min(560, Math.round(root ? root.clientWidth - 36 : 560))), rowH = 28, padL = 60, padR = 70, H = rows.length * rowH + 30;
       var top = niceCeil(Math.max.apply(null, rows.map(function (r) { return r.activationMs; })));
       var g = [];
       rows.forEach(function (r, i) {
@@ -646,17 +647,20 @@
       var desc = 'Simulated activation time by cluster count: ' + rows.map(function (r) { return r.clusters + ' clusters ' + fmt(r.activationMs, 'ms'); }).join('; ') + '.';
       chart = h('div', { class: 'latency-card', style: 'margin-top:16px' }, [svgEl('svg', { class: 'chart chart-h', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': desc }, g)]);
     }
-    return h('div', null, [h('div', { class: 'table-wrap' }, [table]), chart]);
+    var note = scale.environment && typeof scale.environment.note === 'string' && scale.environment.note
+      ? h('p', { class: 'small muted', text: 'What the columns measure: ' + scale.environment.note + '.' })
+      : null;
+    return h('div', null, [h('div', { class: 'table-wrap' }, [table]), note, chart]);
   }
 
-  function testsBlock(tests) {
+  function testsBlock(tests, cov) {
     if (!tests) return h('p', { class: 'state', text: 'This results file has no unit or integration test counts.' });
     var u = tests.unit || {}, it = tests.integration || {};
     var items = [
       ['pass', u.passed, 'unit tests passed'],
       [isNum(u.failed) && u.failed > 0 ? 'fail' : '', u.failed, 'unit tests failed'],
-      ['', u.coverage, 'unit statement coverage'],
-      ['pass', it.passed, 'integration tests passed (envtest)']
+      ['pass', it.passed, 'integration tests passed (envtest)'],
+      ['', cov && cov.internalPackages, 'statement coverage, unit and integration combined']
     ];
     var row = h('div', { class: 'stat-row' }, items.map(function (x) {
       var v = x[1];
@@ -666,12 +670,11 @@
     var skipped = isNum(it.skipped) && it.skipped > 0
       ? h('p', { class: 'small muted', text: 'Integration tests skipped: ' + it.skipped + '. The scale simulation is skipped unless make benchmark runs it.' })
       : null;
-    return h('div', null, [row, extra, skipped]);
-  }
-
-  function coverageBlock(cov) {
-    if (!cov || !cov.internalPackages) return null;
-    return h('p', null, [h('strong', { text: 'Combined statement coverage: ' + cov.internalPackages }), ' (' + (cov.scope || '') + ').']);
+    var bySuite = [u.coverage ? 'unit ' + u.coverage : '', it.coverage ? 'integration ' + it.coverage : ''].filter(Boolean).join(', ');
+    var covLine = cov && cov.internalPackages
+      ? h('p', { class: 'small muted', text: 'Combined coverage: ' + (cov.scope || 'unit and integration tests together') + '.' + (bySuite ? ' By suite: ' + bySuite + '.' : '') })
+      : null;
+    return h('div', null, [row, extra, skipped, covLine]);
   }
 
   function conformanceBlock(conf) {
@@ -727,7 +730,7 @@
     root.appendChild(section('conformance', 'Upstream conformance',
       'The kube-agentic-networking conformance suite, run unmodified from the upstream repository against a lab cluster.', [conformanceBlock(data.conformance)]));
 
-    root.appendChild(section('tests', 'Unit and integration tests', 'Integration tests run against a real kube-apiserver and etcd (envtest).', [testsBlock(data.tests), coverageBlock(data.coverage)]));
+    root.appendChild(section('tests', 'Unit and integration tests', 'Integration tests run against a real kube-apiserver and etcd (envtest).', [testsBlock(data.tests, data.coverage)]));
   }
 
   /* Content arrives after the fetch, so the browser's own jump to #id happens too early.
@@ -786,7 +789,7 @@
         if (root) renderDashboard(data);
         if (answerStats) renderAnswers(data);
         done();
-        if (preview || root) announce('Results loaded');
+        if (root) announce('Results loaded');
         focusHash();
       })
       .catch(function (err) {

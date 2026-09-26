@@ -19,7 +19,9 @@
   var TICKET = 'M-13-8H13A3 3 0 0 1 16-5V-3A3 3 0 0 0 16 3V5A3 3 0 0 1 13 8H-13A3 3 0 0 1-16 5V3A3 3 0 0 0-16-3V-5A3 3 0 0 1-13-8Z';
   var NAMES = ['cluster-east', 'cluster-west', 'cluster-edge'];
   var E = 0, W = 1, X = 2;
-  var NARROW_BELOW = 600;
+  /* Below this app width the portrait scene is used; with the stage's size limits it keeps
+   * the smallest scene text at 10 px or more (see flows.css). */
+  var NARROW_BELOW = 760;
   var data = null;
 
   /* ---------- helpers ---------- */
@@ -293,8 +295,8 @@
         if (i === 2) { st.hub.hot = true; status(st, q[2] < 0.3 ? 'Selected: cluster-east, cluster-west' : 'Sending one ManifestWork per cluster', 'teal'); }
         [E, W].forEach(function (k, n) { if (sendAt(st, k, 'grant', q[2], 0.3 + n * 0.03, 0.78 + n * 0.03)) grantOn(st, k); });
         callAt(st, E, 'restart_workload', 'allow', q[3], 0.05, 0.5);
-        callAt(st, W, 'restart_workload', 'allow', q[3], 0.08, 0.53);
-        if (q[3] > 0.6) measure(st, 'activationToAllowMs', 'lease → first ALLOW');
+        callAt(st, W, 'restart_workload', 'allow', q[3], 0.2, 0.65);
+        if (q[3] > 0.7) measure(st, 'activationToAllowMs', 'lease → first ALLOW');
         if (i === 3) status(st, 'Grants delivered to east and west', 'teal');
         if (i === 4) status(st, ready ? 'Lease Ready on both clusters' : 'Waiting for OCM status feedback', ready ? 'teal' : 'dim');
         if (i === 5) { st.cl[X].hot = true; status(st, 'Nothing rendered for cluster-edge'); }
@@ -349,8 +351,8 @@
         if (i === 2) { st.hub.hot = true; status(st, 'Rendering without the lease rule'); }
         if (i === 3) status(st, 'No grant left for sre-agent');
         callAt(st, E, 'restart_workload', 'deny', q[3], 0.05, 0.5);
-        callAt(st, W, 'restart_workload', 'deny', q[3], 0.08, 0.53);
-        if (q[3] > 0.6) measure(st, 'revocationToDenyMs', 'delete → first DENY');
+        callAt(st, W, 'restart_workload', 'deny', q[3], 0.2, 0.65);
+        if (q[3] > 0.7) measure(st, 'revocationToDenyMs', 'delete → first DENY');
       }
     },
 
@@ -405,14 +407,14 @@
         if (paused) status(st, 'Hub paused: API unreachable', 'amber');
         if (i === 3 && !paused) { st.hub.hot = true; status(st, expired ? 'Lease Expired, withdrawing grants' : 'Hub resumed', expired ? 'coral' : 'teal'); }
         if (i === 4) status(st, 'Stale grants withdrawn');
-        callAt(st, E, 'restart_workload', 'allow', q[0], 0.52, 0.85);
-        callAt(st, W, 'restart_workload', 'allow', q[0], 0.55, 0.88);
+        callAt(st, E, 'restart_workload', 'allow', q[0], 0.5, 0.8);
+        callAt(st, W, 'restart_workload', 'allow', q[0], 0.62, 0.92);
         callAt(st, E, 'restart_workload', 'allow', q[1], 0.45, 0.85);
-        callAt(st, E, 'restart_workload', 'deny', q[2], 0.38, 0.72);
-        callAt(st, W, 'restart_workload', 'deny', q[2], 0.42, 0.76);
+        callAt(st, E, 'restart_workload', 'deny', q[2], 0.36, 0.66);
+        callAt(st, W, 'restart_workload', 'deny', q[2], 0.47, 0.77);
         if (q[2] > 0.8) measure(st, 'expiryToDenyHubDownMs', 'expiry → DENY, hub down');
-        callAt(st, E, 'restart_workload', 'deny', q[4], 0.05, 0.45);
-        callAt(st, W, 'restart_workload', 'deny', q[4], 0.08, 0.48);
+        callAt(st, E, 'restart_workload', 'deny', q[4], 0.05, 0.42);
+        callAt(st, W, 'restart_workload', 'deny', q[4], 0.17, 0.54);
         if (q[4] > 0.55) measure(st, 'reconnectConvergenceMs', 'resume → grants gone');
       }
     },
@@ -434,10 +436,10 @@
         if (sendAt(st, X, 'grant', q[2], 0.28, 0.73)) grantOn(st, X);
         if (sendAt(st, W, 'grant', q[4], 0.45, 0.85)) grantOn(st, W);
         if (sendAt(st, X, 'withdraw', q[4], 0.48, 0.88)) { grantOff(st, X); slot(st, X, 'anchor only', 'dim'); }
-        callAt(st, W, 'restart_workload', 'allow', q[0], 0.5, 0.82);
-        callAt(st, X, 'restart_workload', 'deny', q[0], 0.55, 0.87);
-        callAt(st, W, 'restart_workload', 'deny', q[3], 0.05, 0.45);
-        callAt(st, X, 'restart_workload', 'allow', q[3], 0.08, 0.48);
+        callAt(st, W, 'restart_workload', 'allow', q[0], 0.48, 0.78);
+        callAt(st, X, 'restart_workload', 'deny', q[0], 0.6, 0.9);
+        callAt(st, W, 'restart_workload', 'deny', q[3], 0.05, 0.42);
+        callAt(st, X, 'restart_workload', 'allow', q[3], 0.17, 0.54);
         if (q[3] > 0.55) measure(st, 'S7:labelChangeToAllowMs,labelChangeToDenyMs', 'edge ALLOW / west DENY');
         if (i === 2 || i === 4) [W, X].forEach(function (k) { idle(st, k); });
         if (i === 0) status(st, active ? 'Lease Active' : 'New lease', active ? 'teal' : 'dim');
@@ -884,7 +886,12 @@
   }
   var initial = fromHash();
   select(initial >= 0 ? initial : 0);
-  if (initial >= 0) window.requestAnimationFrame(function () { tablist.scrollIntoView({ block: 'start' }); });
+  /* A #flow-* link: bring the tabs into view now, after layout settles, and after load. */
+  function showTabs() { tablist.scrollIntoView({ block: 'start' }); }
+  if (initial >= 0) {
+    window.requestAnimationFrame(function () { window.requestAnimationFrame(showTabs); });
+    window.addEventListener('load', showTabs);
+  }
   window.addEventListener('hashchange', function () {
     var k = fromHash();
     if (k < 0) return;
@@ -1012,6 +1019,7 @@
         data = d;
         fill(d);
         if (current) current.paint();
+        document.dispatchEvent(new CustomEvent('fp:rendered'));
       })
       .catch(noData);
   } else {
