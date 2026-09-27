@@ -653,7 +653,7 @@
     return h('div', null, [h('div', { class: 'table-wrap' }, [table]), note, chart]);
   }
 
-  function testsBlock(tests, cov) {
+  function testsBlock(tests, cov, carried) {
     if (!tests) return h('p', { class: 'state', text: 'This results file has no unit or integration test counts.' });
     var u = tests.unit || {}, it = tests.integration || {};
     var items = [
@@ -671,10 +671,23 @@
       ? h('p', { class: 'small muted', text: 'Integration tests skipped: ' + it.skipped + '. The scale simulation is skipped unless make benchmark runs it.' })
       : null;
     var bySuite = [u.coverage ? 'unit ' + u.coverage : '', it.coverage ? 'integration ' + it.coverage : ''].filter(Boolean).join(', ');
+    /* The generator marks data reused from an earlier run; say so next to it. */
+    carried = carried && typeof carried === 'object' ? carried : {};
+    var reused = function (key) { return carried[key] ? ' Carried forward from ' + fmtDate(String(carried[key])) + ', not rerun.' : ''; };
     var covLine = cov && cov.internalPackages
-      ? h('p', { class: 'small muted', text: 'Combined coverage: ' + (cov.scope || 'unit and integration tests together') + '.' + (bySuite ? ' By suite: ' + bySuite + '.' : '') })
+      ? h('p', { class: 'small muted', text: 'Combined coverage: ' + (cov.scope || 'unit and integration tests together') + '.' + (bySuite ? ' By suite: ' + bySuite + '.' : '') + reused('coverage') })
       : null;
-    return h('div', null, [row, extra, skipped, covLine]);
+    var testsReused = carried.tests ? h('p', { class: 'small', text: 'Unit and integration test results:' + reused('tests') }) : null;
+    /* Packages that failed without a failing test (a build failure, a panic, a run that never finished) are listed by the generator. */
+    var failedPkgs = [['unit', u], ['integration', it]].map(function (x) {
+      var list = Array.isArray(x[1].failedPackages) ? x[1].failedPackages.filter(function (v) { return typeof v === 'string' && v; }) : [];
+      if (!list.length) return null;
+      return h('div', { class: 'callout deny' }, [
+        h('strong', { text: 'Failed ' + x[0] + ' test packages' }),
+        h('ul', { class: 'small' }, list.map(function (name) { return h('li', null, [h('code', { text: name })]); }))
+      ]);
+    }).filter(Boolean);
+    return h('div', null, [row, testsReused, extra, skipped].concat(failedPkgs).concat([covLine]));
   }
 
   function conformanceBlock(conf) {
@@ -730,7 +743,7 @@
     root.appendChild(section('conformance', 'Upstream conformance',
       'The kube-agentic-networking conformance suite, run unmodified from the upstream repository against a lab cluster.', [conformanceBlock(data.conformance)]));
 
-    root.appendChild(section('tests', 'Unit and integration tests', 'Integration tests run against a real kube-apiserver and etcd (envtest).', [testsBlock(data.tests, data.coverage)]));
+    root.appendChild(section('tests', 'Unit and integration tests', 'Integration tests run against a real kube-apiserver and etcd (envtest).', [testsBlock(data.tests, data.coverage, data.carriedForward)]));
   }
 
   /* Content arrives after the fetch, so the browser's own jump to #id happens too early.

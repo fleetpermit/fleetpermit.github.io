@@ -20,7 +20,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <script>(function(){var d=document.documentElement,t='dark';d.className=d.className.replace('no-js','js');try{var s=localStorage.getItem('fp-theme');if(s==='light'||s==='dark')t=s;}catch(e){}d.setAttribute('data-theme',t);})();</script>
 <script src="assets/js/site.js?v=cc30a89c8a" defer></script>
-<script src="assets/js/flows.js?v=071740ad93" defer></script>
+<script src="assets/js/flows.js?v=f8fb2bf1a8" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -284,7 +284,7 @@
               <ol class="fl-steps">
                 <li><span class="fl-step"><span>cluster-west holds a rendered XAccessPolicy with an active grant for <code>restart_workload</code>.</span></span></li>
                 <li><span class="fl-step"><span>The test deletes that XAccessPolicy directly on cluster-west, without going through the hub.</span></span></li>
-                <li><span class="fl-step"><span>Two seconds later the test expects DENY, unless the policy is already back. While only the default-deny anchor is left, the backend stays closed.</span></span></li>
+                <li><span class="fl-step"><span>While the policy is missing, the test watches for up to 15 seconds for the anchor's DENY. It records when it saw the DENY, or "not observed" if the policy came back before the gateway dropped the rule. While only the default-deny anchor is left, the backend stays closed.</span></span></li>
                 <li><span class="fl-step"><span>At its next status sync, OCM reports the object missing. FleetPermit then asks the work agent to re-apply it at once.</span></span></li>
                 <li><span class="fl-step"><span>The policy is back and the call gets ALLOW again. The test times this from the delete.</span></span></li>
               </ol>
@@ -305,7 +305,7 @@
               <ol class="fl-steps">
                 <li><span class="fl-step"><span>cluster-edge is not selected, so FleetPermit sends it nothing. The only XAccessPolicy on its backend is the default-deny anchor, whose rule never matches.</span></span></li>
                 <li><span class="fl-step"><span>The test deletes the anchor. Now no XAccessPolicy targets the backend.</span></span></li>
-                <li><span class="fl-step"><span><code>sre-agent</code> calls <code>read_secret</code> on cluster-edge. Upstream enforces nothing on a backend without a policy, and the lab observed ALLOW. The test records this call but does not require it.</span></span></li>
+                <li><span class="fl-step"><span><code>sre-agent</code> calls <code>read_secret</code> on cluster-edge. Upstream enforces nothing on a backend without a policy, so the call gets ALLOW. The test requires that ALLOW: without it the scenario fails.</span></span></li>
                 <li><span class="fl-step"><span>The test puts the anchor back. The same call gets DENY.</span></span></li>
               </ol>
               <div class="fl-facts">
@@ -436,7 +436,7 @@
                 <tr><th scope="row">Open Cluster Management</th><td><code>v1.3.1</code></td><td>Stable APIs; CNCF Sandbox project</td></tr>
                 <tr><th scope="row">kube-agentic-networking</th><td><code>v0.2.0</code></td><td><span class="pill pill-lease">Experimental</span> XAccessPolicy <code>v1alpha1</code>, XBackend <code>v0alpha0</code></td></tr>
                 <tr><th scope="row">Gateway API</th><td><code>v1.5.1</code></td><td>Standard channel</td></tr>
-                <tr><th scope="row">Envoy</th><td><code>v1.36.6</code></td><td>CNCF Graduated</td></tr>
+                <tr><th scope="row">Envoy</th><td><code>v1.36.10</code>, pinned by image digest</td><td>CNCF Graduated. The lab moved from v1.36.6, which predates the 1.36 security fixes</td></tr>
                 <tr><th scope="row">Kubernetes</th><td><code>v1.35</code> kind nodes</td><td>Pod Certificates are beta and feature-gated</td></tr>
               </tbody>
             </table>

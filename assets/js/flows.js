@@ -461,6 +461,9 @@
         if (q[2] > 0) slot(st, W, 'anchor only', 'amber');
         if (i === 3) { st.hub.hot = true; status(st, q[3] < 0.5 ? 'OCM: object missing on west' : 'Re-apply requested', q[3] < 0.5 ? 'amber' : 'teal'); }
         if (sendAt(st, W, 'grant', q[3], 0.55, 0.92)) grantOn(st, W);
+        /* S10 watches for up to 15 s for the anchor's DENY; it reports "not observed" when the
+         * policy is back before the gateway drops the rule. The scene shows the case where it is seen. */
+        if (i === 2) measure(st, 'text:anchor DENY', 'test watches 15 s for');
         callAt(st, W, 'restart_workload', 'deny', q[2], 0.15, 0.55);
         if (i === 3 && q[3] >= 0.92) idle(st, W);
         callAt(st, W, 'restart_workload', 'allow', q[4], 0.1, 0.5);
@@ -517,6 +520,7 @@
     return null;
   }
   function measureValue(key) {
+    if (key.indexOf('text:') === 0) return key.slice(5);
     if (key.indexOf(':') > 0) {
       var parts = key.split(':'), mt = scenarioMetrics(parts[0]);
       if (!mt) return '';
